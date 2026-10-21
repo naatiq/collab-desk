@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Collab Desk</title>
+<meta name="theme-color" content="#5B3FD6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Collab Desk">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px)}
+/* Layout: a colour-coded creator desk. Left rail (bottom bar on phones), one working pane, slide-in drawer per item.
+   Every category (stage, collab type, region, brand type, content status) owns one hue from the set below. */
+:root{
+  --bg:#F6F4FB; --panel:#FFFFFF; --sunk:#EFECF7; --line:#E3DEEE;
+  --ink:#211C35; --muted:#6B6585; --faint:#9A94B0;
+  --accent:#5B3FD6; --accent-ink:#FFFFFF; --accent-soft:#ECE7FD;
+  --gold:#B45309; --gold-soft:#FEF0C7;
+  --bad:#B91C1C; --bad-soft:#FDE3E3; --ok:#15803D; --ok-soft:#DDF7E5; --warn:#A16207; --warn-soft:#FEF0C7;
+  --rose:#BE185D; --rose-s:#FCE4EF; --amber:#B45309; --amber-s:#FEF0C7; --green:#15803D; --green-s:#DDF7E5;
+  --teal:#0F766E; --teal-s:#D2F6EF; --sky:#0369A1; --sky-s:#DDEFFC; --indigo:#4338CA; --indigo-s:#E3E6FF;
+  --violet:#7E22CE; --violet-s:#F1E5FF; --orange:#C2410C; --orange-s:#FFE8D6; --slate:#55607A; --slate-s:#E7EAF1; --red:#B91C1C; --red-s:#FDE3E3;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Helvetica Neue", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r:14px; --shadow:0 18px 50px rgba(40,25,90,.18); --lift:0 1px 2px rgba(40,25,90,.06), 0 4px 14px rgba(40,25,90,.06);
+  --h:var(--accent); --hs:var(--accent-soft);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13111C; --panel:#1B1827; --sunk:#232034; --line:#322D48;
+  --ink:#EEEBF8; --muted:#ABA5C4; --faint:#7A7494;
+  --accent:#A996FF; --accent-ink:#160F33; --accent-soft:#2A2350;
+  --gold:#FCD34D; --gold-soft:#38290B;
+  --bad:#FCA5A5; --bad-soft:#3B1515; --ok:#86EFAC; --ok-soft:#12301D; --warn:#FCD34D; --warn-soft:#38290B;
+  --shadow:0 18px 50px rgba(0,0,0,.55); --lift:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+  --rose:#F9A8D4; --rose-s:#3A1428; --amber:#FCD34D; --amber-s:#38290B; --green:#86EFAC; --green-s:#12301D;
+  --teal:#5EEAD4; --teal-s:#0E2F2C; --sky:#7DD3FC; --sky-s:#0D2638; --indigo:#A5B4FC; --indigo-s:#1D2048;
+  --violet:#D8B4FE; --violet-s:#2B1842; --orange:#FDBA74; --orange-s:#3A200D; --slate:#CBD5E1; --slate-s:#232838; --red:#FCA5A5; --red-s:#3B1515; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13111C; --panel:#1B1827; --sunk:#232034; --line:#322D48;
+  --ink:#EEEBF8; --muted:#ABA5C4; --faint:#7A7494;
+  --accent:#A996FF; --accent-ink:#160F33; --accent-soft:#2A2350;
+  --gold:#FCD34D; --gold-soft:#38290B;
+  --bad:#FCA5A5; --bad-soft:#3B1515; --ok:#86EFAC; --ok-soft:#12301D; --warn:#FCD34D; --warn-soft:#38290B;
+  --shadow:0 18px 50px rgba(0,0,0,.55); --lift:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+  --rose:#F9A8D4; --rose-s:#3A1428; --amber:#FCD34D; --amber-s:#38290B; --green:#86EFAC; --green-s:#12301D;
+  --teal:#5EEAD4; --teal-s:#0E2F2C; --sky:#7DD3FC; --sky-s:#0D2638; --indigo:#A5B4FC; --indigo-s:#1D2048;
+  --violet:#D8B4FE; --violet-s:#2B1842; --orange:#FDBA74; --orange-s:#3A200D; --slate:#CBD5E1; --slate-s:#232838; --red:#FCA5A5; --red-s:#3B1515; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100%}
+.rail{position:sticky;top:env(safe-area-inset-top,0px);height:100vh;padding:22px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;background:var(--panel)}
+.logo{font:700 22px/1 var(--f-display);letter-spacing:-.02em;padding:4px 10px 18px;background:linear-gradient(90deg,var(--rose),var(--orange) 45%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo small{-webkit-text-fill-color:var(--muted)}
+.logo small{display:block;font:500 11px/1.4 var(--f-mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:6px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:0;background:none;text-align:left;cursor:pointer;color:var(--muted);font-weight:500}
+.nav:hover{background:var(--sunk);color:var(--ink)}
+.nav .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--hs);color:var(--h);flex:none}
+.nav[aria-current="page"]{background:var(--hs);color:var(--ink);font-weight:600}
+.nav[aria-current="page"] .ic{background:var(--h);color:var(--panel)}
+.nav .ct{margin-left:auto;font:500 11px var(--f-mono);background:var(--bad);color:var(--panel);border-radius:10px;padding:1px 7px}
+.nav svg{width:18px;height:18px;flex:none}
+.rail .spacer{flex:1}
+.status{font:12px var(--f-mono);color:var(--faint);padding:6px 10px}
+.syncbar{display:none}
+.settings{margin-top:32px;max-width:720px;display:flex;flex-direction:column;gap:12px}
+.setcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--lift);display:flex;flex-direction:column;gap:10px}
+.setcard h2{font-size:16px}
+.setcard p{margin:0;color:var(--muted);font-size:13.5px}
+.setcard .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.setcard input[type=text]{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:8px 10px;font-family:var(--f-mono);font-size:13px}
+main{padding-block:28px 60px;padding-inline:32px;min-width:0;max-width:1240px;width:100%}
+h1{font:700 clamp(26px,3vw,34px)/1.1 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font:700 18px/1.2 var(--f-display);margin:0;letter-spacing:-.01em}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:22px}
+.head .sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.head .actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.ghost{background:none;border-color:transparent}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.55;cursor:default}
+.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:28px}
+.kpi{background:linear-gradient(160deg,var(--hs),var(--panel) 75%);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0;box-shadow:var(--lift);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--h)}
+.kpi .eyebrow{color:var(--h)}
+.kpi b{display:block;font:700 28px/1.1 var(--f-display);color:var(--ink);margin-top:8px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpi span.d{font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden;box-shadow:var(--lift)}
+.item{display:grid;grid-template-columns:6px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px 12px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.item:first-child{border-top:0}
+.item:hover{background:var(--sunk)}
+.item .stripe{align-self:stretch;background:var(--line)}
+.item.bad{background:color-mix(in srgb,var(--red-s) 45%,var(--panel))}
+.item.bad .stripe{background:var(--red)} .item.warn .stripe{background:var(--amber)} .item.ok .stripe{background:var(--violet)}
+.item .tag{font:600 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--h);margin-bottom:2px}
+.item .t{font-weight:600}
+.item .s{color:var(--muted);font-size:13px}
+.item .when{font:12px var(--f-mono);color:var(--muted);text-align:right}
+.item.bad .when{color:var(--bad)}
+.empty{padding:28px 18px;color:var(--muted);text-align:center;border:1px dashed var(--line);border-radius:var(--r)}
+.section-title{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.chip{display:inline-flex;align-items:center;gap:5px;font:500 11.5px/1 var(--f-body);padding:4px 8px;border-radius:20px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.acc{background:var(--accent-soft);color:var(--accent)}
+.chip.hued{background:var(--hs);color:var(--h);font-weight:600}
+.chip.hued::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ex{background:var(--gold-soft);color:var(--warn)}
+/* pipeline */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:12px;overflow-x:auto;padding-bottom:12px}
+.col{background:color-mix(in srgb,var(--hs) 55%,var(--bg));border-top:3px solid var(--h);border-radius:var(--r);padding:10px;min-height:120px;display:flex;flex-direction:column;gap:8px}
+.col h3{font:700 13.5px var(--f-body);margin:2px 4px 4px;display:flex;justify-content:space-between;align-items:center;color:var(--h)}
+.col h3 .mono{background:var(--panel);color:var(--h);border-radius:10px;padding:1px 8px;font-size:11.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--h);border-radius:10px;box-shadow:var(--lift);padding:10px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;width:100%}
+.card:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(40,25,90,.12)}
+@media (prefers-reduced-motion:no-preference){.card,.bcard{transition:transform .15s,box-shadow .15s}}
+.card .bn{font-weight:600;overflow-wrap:anywhere}
+.card .meta{display:flex;flex-wrap:wrap;gap:4px}
+.card .fee{font:500 13px var(--f-mono)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.seg{display:inline-flex;flex-wrap:wrap;max-width:100%;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:none;padding:7px 12px;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--h,var(--accent));color:var(--panel)}
+.seg button[data-hue][aria-pressed="false"]:hover{color:var(--h)}
+.search{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:0;flex:1;max-width:280px}
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);box-shadow:var(--lift)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--sunk)}
+td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num{text-align:right}
+.totals{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.total{background:linear-gradient(160deg,var(--hs),var(--panel) 80%);border:1px solid var(--line);border-left:4px solid var(--h);border-radius:var(--r);padding:12px 16px;min-width:170px;box-shadow:var(--lift)}
+.total .eyebrow{color:var(--h)}
+.total b{display:block;font:700 22px var(--f-display);font-variant-numeric:tabular-nums;margin-top:6px}
+/* calendar */
+.calhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--line);gap:1px}
+.cal .dow{background:var(--panel);font:500 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px}
+.cal .day{background:var(--panel);min-height:104px;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cal .day.out{background:var(--sunk)}
+.cal .day .n{font:500 12px var(--f-mono);color:var(--muted)}
+.cal .day.today{background:color-mix(in srgb,var(--accent-soft) 60%,var(--panel))}
+.cal .day.today .n{color:var(--accent-ink);background:var(--accent);border-radius:10px;padding:0 6px;align-self:flex-start}
+.ev{font-size:11.5px;line-height:1.3;padding:2px 5px;border-radius:4px;background:var(--sunk);border:0;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.ev{border-left:3px solid currentColor}
+.ev.shoot{background:var(--violet-s);color:var(--violet)} .ev.live{background:var(--sky-s);color:var(--sky)} .ev.pay{background:var(--green-s);color:var(--green)} .ev.fu{background:var(--red-s);color:var(--red)} .ev.post{background:var(--rose-s);color:var(--rose)} .ev.draft{background:var(--amber-s);color:var(--amber)} .ev.rights{background:var(--orange-s);color:var(--orange)}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+/* brands */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bcard{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--h);border-radius:var(--r);padding:14px;box-shadow:var(--lift);display:flex;flex-direction:column;gap:8px;min-width:0}
+.bcard .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.bcard h4{margin:0;font:700 17px/1.2 var(--f-display)}
+.bcard:hover{transform:translateY(-2px)}
+.av{width:38px;height:38px;border-radius:11px;background:var(--hs);color:var(--h);display:grid;place-items:center;font:700 17px var(--f-display);flex:none}
+.bcard .who{display:flex;gap:10px;align-items:center;min-width:0}
+.bcard p{margin:0;color:var(--muted);font-size:13.5px}
+.bcard .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(5,15,12,.42);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--panel);z-index:41;box-shadow:var(--shadow);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dhead{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dhead h2{flex:1;min-width:0;overflow-wrap:anywhere}
+.dbody{overflow-y:auto;padding:4px 20px 24px;flex:1}
+.dfoot{display:flex;gap:8px;padding:12px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.dfoot .r{margin-left:auto;display:flex;gap:8px}
+fieldset{border:0;padding:0;margin:20px 0 0}
+legend{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--h);background:var(--hs);border-radius:6px;margin-bottom:10px;padding:5px 9px}
+.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f.full{grid-column:1/-1}
+.f label{font-size:12.5px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+.f textarea{min-height:72px;resize:vertical}
+.f.check{flex-direction:row;align-items:center;gap:8px}
+.f.check input{width:auto}
+.hint{font-size:12px;color:var(--muted);background:var(--sunk);border-radius:7px;padding:8px 10px;grid-column:1/-1}
+.hint b{color:var(--ink)}
+.revs{display:flex;flex-direction:column;gap:6px}
+.rev{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 10px;border:1px solid var(--line);border-radius:7px}
+.rev.done .txt{text-decoration:line-through;color:var(--muted)}
+.rev .d{font:11px var(--f-mono);color:var(--muted)}
+.addrev{display:flex;gap:8px;margin-top:6px}
+.addrev input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:8px 10px}
+.ai{margin-top:12px;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:var(--r);padding:12px 14px;background:var(--accent-soft)}
+.ai pre{white-space:pre-wrap;font:14px/1.55 var(--f-body);margin:6px 0 10px;overflow-wrap:anywhere}
+.aibar{display:flex;gap:6px;flex-wrap:wrap;margin-top:18px}
+/* assistant */
+.chat{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.msg{max-width:78ch;padding:12px 14px;border-radius:var(--r);white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.msg.bot{background:var(--panel);border:1px solid var(--line)}
+.composer{display:flex;gap:8px;align-items:flex-end;position:sticky;bottom:12px;background:var(--bg);padding-top:8px}
+.composer textarea{flex:1;min-width:0;border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--panel);min-height:48px;resize:vertical}
+.prompts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;z-index:60;font-weight:500}
+.banner{background:var(--gold-soft);color:var(--ink);border-radius:var(--r);padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner p{margin:0;flex:1;min-width:200px}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));border-right:0;border-top:1px solid var(--line);z-index:30;overflow-x:auto;gap:2px}
+  .rail .logo,.rail .spacer,.rail .status{display:none}
+  .syncbar{display:flex;align-items:center;gap:6px;font:11.5px var(--f-mono);color:var(--muted);margin:-8px 0 12px}
+  .syncdot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+  .syncbar.ok .syncdot{background:var(--ok)} .syncbar.warn .syncdot{background:var(--warn)} .syncbar.bad .syncdot{background:var(--bad)}
+  .nav{flex-direction:column;gap:2px;font-size:10.5px;padding:6px 8px;flex:1;min-width:58px}
+  .nav .ic{width:28px;height:26px}
+  .nav .ct{position:absolute;margin:0;transform:translate(12px,-4px);font-size:9px;padding:0 5px}
+  .nav{position:relative}
+  main{padding-block:20px 110px;padding-inline:16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fg{grid-template-columns:minmax(0,1fr)}
+  .cal .day{min-height:64px;padding:3px}
+  .ev{font-size:0;height:6px;padding:0}
+  .cal .dow{padding:6px 2px;font-size:9px;text-align:center}
+}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .22s ease-out}@keyframes slide{from{transform:translateX(30px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Sections">
+    <div class="logo">Collab Desk<small>Shoots · Deals · Money</small></div>
+    <button class="nav" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Today<span class="ct" id="ct-today" hidden></span></button>
+    <button class="nav" data-tab="deals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="7" rx="1"/></svg>Collabs</button>
+    <button class="nav" data-tab="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendar</button>
+    <button class="nav" data-tab="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>Content</button>
+    <button class="nav" data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h12M6 9h12M13 4c3 0 4 2.5 4 5s-2 5-5 5H7l8 7"/></svg>Payments</button>
+    <button class="nav" data-tab="brands"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 21 3l-8 18-2-8z"/></svg>Pitch list</button>
+    <div class="spacer"></div>
+    <button class="nav" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>My profile</button>
+    <div class="status syncstatus">Starting…</div>
+  </nav>
+  <main><div class="syncbar"><span class="syncdot"></span><span class="syncstatus">Starting…</span></div><div id="view"></div></main>
+</div>
+<div id="drawerroot"></div>
+<div id="toastroot"></div>
+
+<script src="config.js"></script>
+<script src="sync.js"></script>
+<script>
+(() => {
+/* ---------- constants ---------- */
+const STAGES = ["Lead","Negotiating","Confirmed","Shooting","Review","Live","Done","Lost"];
+const STAGE_HINT = {Lead:"Inbound or pitched",Negotiating:"Rates & terms",Confirmed:"Agreed, pre-shoot",Shooting:"Shoot & edit",Review:"Brand feedback",Live:"Posted",Done:"Wrapped",Lost:"Didn't happen"};
+const PAY = ["Not invoiced","Invoiced","Part paid","Paid","Barter"];
+const DTYPES = ["Paid","Paid + product","Barter","Gifted","Affiliate"];
+const DTYPE_HINT = {"Paid":"Cash fee","Paid + product":"Cash fee and they send product","Barter":"Product in exchange for agreed content","Gifted":"PR gift, no obligation to post","Affiliate":"Commission or code-based earnings"};
+const USAGE = ["Organic only","Brand can repost","Paid ads","Whitelisting / Spark ads","Paid ads + whitelisting"];
+const REGIONS = ["India","Middle East","International"];
+const CURR = ["INR","AED","QAR","SAR","USD","EUR","GBP"];
+const SYM = {INR:"₹",AED:"AED ",QAR:"QAR ",USD:"$",SAR:"SAR ",EUR:"€",GBP:"£"};
+const CSTAT = ["Idea","Scripting","Shooting","Editing","Scheduled","Posted"];
+const BSTAT = ["To pitch","Pitched","In talks","Won","Not now"];
+const BGROUPS = ["Family & kids","Kids digital","Lifestyle","Beauty & fashion"];
+const HUE = n => `--h:var(--${n});--hs:var(--${n}-s)`;
+const STAGE_HUE = {Lead:"slate",Negotiating:"amber",Confirmed:"indigo",Shooting:"violet",Review:"rose",Live:"sky",Done:"green",Lost:"slate"};
+const DTYPE_HUE = {"Paid":"green","Paid + product":"teal","Barter":"amber","Gifted":"rose","Affiliate":"violet"};
+const REGION_HUE = {"India":"orange","Middle East":"teal","International":"sky"};
+const GROUP_HUE = {"Family & kids":"rose","Kids digital":"sky","Lifestyle":"teal","Beauty & fashion":"violet"};
+const CSTAT_HUE = {Idea:"slate",Scripting:"amber",Shooting:"violet",Editing:"rose",Scheduled:"sky",Posted:"green"};
+const BSTAT_HUE = {"To pitch":"indigo","Pitched":"amber","In talks":"sky","Won":"green","Not now":"slate"};
+const PLAT_HUE = {Instagram:"rose",YouTube:"red",TikTok:"slate",Snapchat:"amber",LinkedIn:"sky",X:"slate",Facebook:"indigo"};
+const NAV_HUE = {today:"orange",deals:"indigo",calendar:"sky",content:"rose",money:"green",brands:"violet",assistant:"teal",profile:"slate"};
+const hchip = (label, hue, title="") => `<span class="chip hued" style="${HUE(hue||"slate")}"${title?` title="${esc(title)}"`:""}>${esc(label)}</span>`;
+const PLATFORMS = ["Instagram","YouTube","TikTok","Snapchat","LinkedIn","X","Facebook"];
+
+/* ---------- utils ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = p => p + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const todayISO = () => new Date().toLocaleDateString("en-CA");
+const addDays = (iso, n) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+Number(n||0)); return d.toLocaleDateString("en-CA"); };
+const addMonths = (iso, n) => { if(!iso) return ""; const d = new Date(iso+"T00:00:00"); d.setMonth(d.getMonth()+Number(n||0)); return d.toLocaleDateString("en-CA"); };
+const diff = (iso) => { if(!iso) return null; return Math.round((new Date(iso+"T00:00:00") - new Date(todayISO()+"T00:00:00"))/864e5); };
+const fmtDate = iso => iso ? new Date(iso+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"}) : "";
+const rel = iso => { const d = diff(iso); if(d===null) return ""; if(d===0) return "today"; if(d===1) return "tomorrow"; if(d===-1) return "yesterday"; return d<0 ? `${-d}d overdue` : `in ${d}d`; };
+const money = (n, c="INR") => { n = Number(n)||0; const loc = c==="INR" ? "en-IN" : "en-US"; return (SYM[c]||c+" ") + n.toLocaleString(loc,{maximumFractionDigits:0}); };
+window.toast = msg => toast(msg);
+function toast(msg){ const r = $("#toastroot"); r.innerHTML = `<div class="toast" role="status">${esc(msg)}</div>`; clearTimeout(toast.t); toast.t = setTimeout(()=> r.innerHTML="", 2400); }
+function copy(text, btn){ const done = () => toast("Copied"); try { navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text)); } catch { fallbackCopy(text); } }
+function fallbackCopy(text){ const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); try{ document.execCommand("copy"); toast("Copied"); }catch{ toast("Select the text and copy it"); } t.remove(); }
+
+/* ---------- derived deal values ---------- */
+const payDue = d => d.invoiceDate ? addDays(d.invoiceDate, d.payTerms ?? 30) : "";
+const usageEnd = d => (d.usageType && d.usageType!=="Organic only" && d.usageStart && d.usageMonths) ? addMonths(d.usageStart, d.usageMonths) : "";
+const exclEnd = d => (d.exclMonths && (d.goLive||d.usageStart)) ? addMonths(d.goLive||d.usageStart, d.exclMonths) : "";
+const dtype = d => d.dealType || "Paid";
+const isMoney = d => !["Barter","Gifted"].includes(dtype(d));
+const typeChip = d => { const t = dtype(d); return hchip(t, DTYPE_HUE[t], DTYPE_HINT[t]||""); };
+const PSTAT = ["Not sent yet","Shipped","Received","Return pending","Returned"];
+const PSTAT_HUE = {"Not sent yet":"slate","Shipped":"amber","Received":"green","Return pending":"orange","Returned":"sky"};
+const hasAds = d => d.usageType && d.usageType!=="Organic only";
+const usageCharge = d => { if(!hasAds(d) || !Number(d.usageFee)) return 0; return d.usageFeeBasis==="Per month" ? Number(d.usageFee)*(Number(d.usageMonths)||1) : Number(d.usageFee); };
+const base = d => (Number(d.fee)||0) + usageCharge(d);
+const gross = d => { const f = base(d); return d.gst ? f*1.18 : f; };
+const outstanding = d => !isMoney(d) || d.payStatus==="Paid"||d.payStatus==="Barter" ? 0 : Math.max(0, gross(d) - (Number(d.received)||0));
+const revUsed = d => (d.revisions||[]).length;
+const revOpen = d => (d.revisions||[]).filter(r=>!r.done).length;
+
+/* ---------- store: local copy on this device, synced to Google Drive as Markdown (sync.js) ---------- */
+const state = { deals:[], content:[], brands:[], profile:{}, ready:false };
+async function save(col, obj){
+  const { id, ...body } = obj; body.updatedAt = new Date().toISOString();
+  const arr = state[col]; const i = arr.findIndex(x=>x.id===id);
+  if(i>=0) arr[i] = {id,...body}; else arr.push({id,...body});
+  render();
+  try{ await CD.put(col, id, body); }catch{ toast("Couldn't save on this device. Try again."); }
+}
+async function remove(col, id){
+  state[col] = state[col].filter(x=>x.id!==id); render();
+  try{ await CD.del(col, id); }catch{ toast("Couldn't delete. Try again."); }
+}
+async function saveProfile(p){
+  p = {...p, updatedAt:new Date().toISOString()}; state.profile = p; render();
+  try{ await CD.put("profile", "profile", p); toast("Profile saved"); }catch{ toast("Couldn't save profile."); }
+}
+async function loadState(){
+  const all = await CD.all();
+  for(const col of ["deals","content","brands"]) state[col] = all.filter(r=>r.col===col).map(r=>({id:r.id, ...r.data}));
+  const p = all.find(r=>r.col==="profile"); state.profile = p ? {...p.data} : {};
+}
+async function initStore(){
+  await CD.open();
+  await loadState(); state.ready = true; render();
+  CD.onChange(async () => { await loadState(); render(); });
+  CD.onStatus(s => { setStatus(s); if(tab==="profile" && !$("#drawerroot").innerHTML) render(); });
+  CD.start();
+}
+function setStatus(t){ document.querySelectorAll(".syncstatus").forEach(el => el.textContent = t); }
+
+/* ---------- attention engine ---------- */
+function attention(){
+  const out = [];
+  const push = (sev, title, sub, date, open) => out.push({sev,title,sub,date,open});
+  for(const d of state.deals){
+    if(d.stage==="Lost") continue;
+    const o = () => openDeal(d.id);
+    if(d.followUp && diff(d.followUp) <= 2) push(diff(d.followUp)<0?"bad":"warn", `Follow up · ${d.brand}`, d.nextAction||"Check in on status", d.followUp, o);
+    const due = payDue(d);
+    if(due && outstanding(d)>0 && d.payStatus!=="Not invoiced"){
+      const n = diff(due);
+      if(n<0) push("bad", `Payment overdue · ${d.brand}`, `${money(outstanding(d), d.currency)} was due ${fmtDate(due)}${d.invoiceNo?` · ${d.invoiceNo}`:""}`, due, o);
+      else if(n<=7) push("warn", `Payment due soon · ${d.brand}`, `${money(outstanding(d), d.currency)} due ${fmtDate(due)}`, due, o);
+    }
+    if(isMoney(d) && Number(d.fee) && (d.stage==="Live"||d.stage==="Done") && (d.payStatus||"Not invoiced")==="Not invoiced") push("warn", `Send invoice · ${d.brand}`, "Content is live but no invoice is logged", d.goLive||todayISO(), o);
+    if(revOpen(d)) push("warn", `Revision to do · ${d.brand}`, (d.revisions||[]).filter(r=>!r.done).map(r=>r.text).join(" · "), d.draftDue||todayISO(), o);
+    if(d.revisionsIncluded!==undefined && d.revisionsIncluded!=="" && revUsed(d) > Number(d.revisionsIncluded)) push("bad", `Extra revision round · ${d.brand}`, `${revUsed(d)} rounds used, ${d.revisionsIncluded} included. Bill or push back.`, todayISO(), o);
+    const ue = usageEnd(d);
+    if(ue && diff(ue) <= 30) push(diff(ue)<0?"bad":"warn", `Ad rights ${diff(ue)<0?"expired":"ending"} · ${d.brand}`, `${d.usageType} until ${fmtDate(ue)}. ${diff(ue)<0?"If ads are still running, raise a renewal fee":"Offer a paid extension"}${d.usageFee?` (you charged ${money(d.usageFee,d.currency)}${d.usageFeeBasis==="Per month"?"/month":""})`:""}.`, ue, o);
+    if(hasAds(d) && !Number(d.usageFee) && isMoney(d) && !["Lead","Done","Lost"].includes(d.stage)) push("warn", `Ad rights unpriced · ${d.brand}`, `${d.usageType} for ${d.usageMonths||"?"} months with no ad rights charge logged`, d.shootDate||todayISO(), o);
+    if(d.productsSent && d.shootDate && diff(d.shootDate)>=0 && diff(d.shootDate)<=4 && !["Received","Return pending","Returned"].includes(d.productStatus)) push(diff(d.shootDate)<=1?"bad":"warn", `Products not received · ${d.brand}`, `Shoot ${rel(d.shootDate)}. Waiting for: ${d.productsSent}`.slice(0,140), d.shootDate, o);
+    if(d.productETA && diff(d.productETA)<0 && ["Not sent yet","Shipped",undefined,""].includes(d.productStatus)) push("warn", `Products late · ${d.brand}`, `Expected ${fmtDate(d.productETA)}${d.productTracking?` · tracking ${d.productTracking}`:""}`, d.productETA, o);
+    if(d.returnRequired && d.productStatus!=="Returned" && ["Live","Done"].includes(d.stage)) push("warn", `Return products · ${d.brand}`, d.productsSent||"Brand asked for products back", d.goLive||todayISO(), o);
+    if(d.shootDate && diff(d.shootDate)>=0 && diff(d.shootDate)<=7) push("ok", `Shoot · ${d.brand}`, [d.shootLocation, d.deliverables].filter(Boolean).join(" · ").slice(0,120), d.shootDate, o);
+    if(d.draftDue && diff(d.draftDue)>=-1 && diff(d.draftDue)<=3 && ["Confirmed","Shooting"].includes(d.stage)) push(diff(d.draftDue)<0?"bad":"warn", `Draft due · ${d.brand}`, d.deliverables||"Send draft for approval", d.draftDue, o);
+    if(["Confirmed","Shooting"].includes(d.stage) && dtype(d)!=="Gifted" && d.contract!=="Signed") push("bad", `No signed contract · ${d.brand}`, "Get usage rights, fee and payment terms in writing before you shoot", d.shootDate||todayISO(), o);
+    if(d.goLive && diff(d.goLive)>=0 && diff(d.goLive)<=3) push("ok", `Goes live · ${d.brand}`, d.platforms||"", d.goLive, o);
+  }
+  for(const b of state.brands){
+    if(b.followUp && diff(b.followUp)<=1 && !["Won","Not now"].includes(b.status)) push(diff(b.followUp)<0?"bad":"warn", `Pitch follow-up · ${b.name}`, b.notes||"No reply yet. Send a short nudge.", b.followUp, () => openBrand(b.id));
+  }
+  for(const c of state.content){
+    if(c.date && diff(c.date)>=0 && diff(c.date)<=2 && c.status!=="Posted") push("ok", `Post · ${c.title}`, `${c.platform||""} ${c.format||""} · ${c.status}`, c.date, () => openContent(c.id));
+  }
+  const rank = {bad:0,warn:1,ok:2};
+  return out.sort((a,b)=> rank[a.sev]-rank[b.sev] || (a.date||"").localeCompare(b.date||""));
+}
+
+/* ---------- routing ---------- */
+let tab = (location.hash||"").slice(1) || "today";
+let ui = { dealView:"board", dealFilter:"", dealType:"All", calMonth: todayISO().slice(0,7), brandRegion:"All", brandGroup:"All", brandFilter:"", chat:[] };
+try { Object.assign(ui, JSON.parse(localStorage.getItem("collabdesk.ui")||"{}"), {chat:[]}); } catch {}
+const saveUI = () => { try{ const {chat, ...rest} = ui; localStorage.setItem("collabdesk.ui", JSON.stringify(rest)); }catch{} };
+function go(t){ tab = t; try{ history.replaceState(null,"","#"+t); }catch{} render(); window.scrollTo(0,0); }
+document.querySelectorAll(".nav").forEach(b => { b.setAttribute("style", HUE(NAV_HUE[b.dataset.tab]||"slate")); const svg = b.querySelector("svg"); if(svg){ const w = document.createElement("span"); w.className = "ic"; svg.replaceWith(w); w.append(svg); } b.addEventListener("click", () => go(b.dataset.tab)); });
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll(".nav").forEach(b => { if(b.dataset.tab===tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const urgent = attention().filter(a=>a.sev==="bad").length;
+  const ct = $("#ct-today"); ct.hidden = !urgent; ct.textContent = urgent;
+  const v = $("#view");
+  if(!state.ready){ v.innerHTML = `<div class="head"><div><span class="eyebrow">Loading</span><h1>Opening your desk…</h1></div></div>`; return; }
+  ({today:viewToday, deals:viewDeals, calendar:viewCalendar, content:viewContent, money:viewMoney, brands:viewBrands, profile:viewProfile}[tab] || viewToday)(v);
+}
+
+function exampleBanner(){
+  const ex = ["deals","content"].reduce((n,k)=> n + state[k].filter(x=>x.example).length, 0);
+  if(!ex) return "";
+  return `<div class="banner"><p><b>${ex} example items</b> are loaded so you can see how everything works. Clear them when you add your first real collab.</p><button class="btn small" id="clearEx">Clear examples</button></div>`;
+}
+function bindExample(){ const b = $("#clearEx"); if(b) b.onclick = async () => { for(const k of ["deals","content"]) for(const x of state[k].filter(x=>x.example)) await remove(k, x.id); toast("Examples cleared"); }; }
+
+function viewToday(v){
+  const p = state.profile, items = attention();
+  const active = state.deals.filter(d=>!["Done","Lost","Lead"].includes(d.stage));
+  const shootsWk = state.deals.filter(d=> d.shootDate && diff(d.shootDate)>=0 && diff(d.shootDate)<=7).length;
+  const revs = state.deals.reduce((n,d)=> n+revOpen(d), 0);
+  const owed = {}; state.deals.forEach(d=>{ const o = outstanding(d); if(o && d.payStatus!=="Not invoiced"){ owed[d.currency||"INR"] = (owed[d.currency||"INR"]||0)+o; } });
+  const owedStr = Object.keys(owed).length ? Object.entries(owed).map(([c,n])=>money(n,c)).join(" + ") : "₹0";
+  const pipeline = state.deals.filter(d=>["Lead","Negotiating"].includes(d.stage)).length;
+  const hr = new Date().getHours(); const hi = hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
+  const upcoming = [];
+  state.deals.forEach(d => { if(d.stage==="Lost") return; [["shootDate","Shoot"],["draftDue","Draft due"],["goLive","Live"]].forEach(([k,l])=>{ if(d[k] && diff(d[k])>=0 && diff(d[k])<=14) upcoming.push({date:d[k], t:`${l} · ${d.brand}`, open:()=>openDeal(d.id)}); }); });
+  state.content.forEach(c => { if(c.date && diff(c.date)>=0 && diff(c.date)<=14 && c.status!=="Posted") upcoming.push({date:c.date, t:`Post · ${c.title}`, open:()=>openContent(c.id)}); });
+  upcoming.sort((a,b)=>a.date.localeCompare(b.date));
+  v.innerHTML = `
+  <div class="head"><div><span class="eyebrow">${new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}</span>
+  <h1>${hi}${p.name?`, ${esc(p.name.split(" ")[0])}`:""}.</h1>
+  <p class="sub">${items.filter(i=>i.sev!=="ok").length ? `Here's the admin I'm tracking so you can stay on content.` : `Nothing needs chasing right now. Go make something good.`}</p></div>
+  <div class="actions"><button class="btn primary" id="newDeal">+ New collab</button></div></div>
+  ${!p.niche ? `<div class="banner"><p><b>Fill in your profile</b> (niche, audience, rates, email sign-off) so everything about you lives in one place.</p><button class="btn small" onclick="location.hash='profile'">Open profile</button></div>`:""}
+  ${exampleBanner()}
+  <div class="kpis">
+    <div class="kpi" style="${HUE("indigo")}"><span class="eyebrow">Active collabs</span><b>${active.length}</b><span class="d">${pipeline} more in talks</span></div>
+    <div class="kpi" style="${HUE("violet")}"><span class="eyebrow">Shoots next 7d</span><b>${shootsWk}</b><span class="d">see calendar</span></div>
+    <div class="kpi" style="${HUE("rose")}"><span class="eyebrow">Open revisions</span><b>${revs}</b><span class="d">across all brands</span></div>
+    <div class="kpi" style="${HUE("green")}"><span class="eyebrow">Owed to you</span><b style="font-size:${owedStr.length>14?18:26}px">${esc(owedStr)}</b><span class="d">invoiced, incl. GST</span></div>
+    <div class="kpi" style="${HUE("orange")}"><span class="eyebrow">Pitch list</span><b>${state.brands.filter(b=>b.status==="To pitch").length}</b><span class="d">brands to pitch</span></div>
+  </div>
+  <div class="two">
+    <section><div class="section-title"><h2>Needs attention</h2><span class="chip">${items.length}</span></div>
+      ${items.length ? `<div class="list" id="att"></div>` : `<div class="empty">All clear. New follow-ups, payments, revisions and rights expiries show up here automatically.</div>`}
+    </section>
+    <section><div class="section-title"><h2>Next 14 days</h2></div>
+      ${upcoming.length ? `<div class="list" id="up"></div>` : `<div class="empty">No shoots, drafts or posts scheduled. Add dates to a collab or content idea.</div>`}
+    </section>
+  </div>`;
+  const att = $("#att"); if(att) items.forEach(it => att.append(itemEl(it.sev, it.title, it.sub, it.date ? `${fmtDate(it.date)}<br>${rel(it.date)}` : "", it.open)));
+  const up = $("#up"); if(up) upcoming.forEach(it => up.append(itemEl("", it.t, "", `${fmtDate(it.date)}<br>${rel(it.date)}`, it.open)));
+  $("#newDeal").onclick = () => openDeal();
+  bindExample();
+}
+const TAG_HUE = [["Payment","green"],["Send invoice","green"],["Follow up","red"],["Pitch","violet"],["Revision","rose"],["Extra revision","rose"],["Ad rights","orange"],["Products","teal"],["Return","teal"],["Shoot","violet"],["Draft","amber"],["No signed","red"],["Goes live","sky"],["Live","sky"],["Post","rose"]];
+function itemEl(sev, t, s, when, onclick){
+  const b = document.createElement("button"); b.className = "item " + sev;
+  const head = t.split(" · ")[0]; const th = (TAG_HUE.find(([k]) => head.startsWith(k))||[,"slate"])[1]; b.setAttribute("style", HUE(th));
+  b.innerHTML = `<span class="stripe"></span><span><div class="tag">${esc(head)}</div><div class="t">${esc(t.split(" · ").slice(1).join(" · ")||t)}</div>${s?`<div class="s">${esc(s)}</div>`:""}</span><span class="when">${when}</span>`;
+  b.onclick = onclick; return b;
+}
+
+function payChip(d){ const s = d.payStatus||"Not invoiced"; const due = payDue(d);
+  if(!isMoney(d)) return "";
+  if(s==="Paid") return hchip("Paid","green"); if(s==="Barter") return hchip("Barter","amber");
+  if(s!=="Not invoiced" && due && diff(due)<0) return hchip("Overdue","red");
+  return hchip(s, {"Not invoiced":"slate","Invoiced":"amber","Part paid":"sky"}[s]); }
+function viewDeals(v){
+  const q = ui.dealFilter.toLowerCase();
+  const list = state.deals.filter(d => (ui.dealType==="All" || dtype(d)===ui.dealType) && (!q || [d.brand,d.campaign,d.agency,d.region].join(" ").toLowerCase().includes(q)));
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">Collabs</span><h1>Brand deals</h1><p class="sub">Every collab from first email to final payment. Open one to log revisions, usage rights and money.</p></div>
+  <div class="actions"><button class="btn" id="csv">Export sheet (CSV)</button><button class="btn primary" id="newDeal">+ New collab</button></div></div>
+  ${exampleBanner()}
+  <div class="toolbar"><div class="seg" role="group" aria-label="View"><button data-v="board" aria-pressed="${ui.dealView==="board"}">Pipeline</button><button data-v="sheet" aria-pressed="${ui.dealView==="sheet"}">Sheet</button></div>
+  <div class="seg" role="group" aria-label="Collab type">${["All",...DTYPES].map(t=>`<button data-t="${t}" ${t!=="All"?`data-hue style="${HUE(DTYPE_HUE[t])}"`:""} aria-pressed="${ui.dealType===t}">${t==="All"?"All types":t}</button>`).join("")}</div>
+  <input class="search" id="dq" placeholder="Search brand, agency, region" value="${esc(ui.dealFilter)}"></div>
+  <div id="dealsbody"></div>`;
+  const body = $("#dealsbody");
+  if(!state.deals.length){ body.innerHTML = `<div class="empty">No collabs yet. Add the first one with <b>+ New collab</b>.</div>`; }
+  else if(ui.dealView==="board"){
+    body.innerHTML = `<div class="board">${STAGES.map(s => { const ds = list.filter(d=>(d.stage||"Lead")===s);
+      return `<div class="col" style="${HUE(STAGE_HUE[s])}"><h3><span title="${esc(STAGE_HINT[s])}">${s}</span><span class="mono">${ds.length}</span></h3>${ds.map(d=>`
+      <button class="card" data-id="${d.id}" style="${HUE(DTYPE_HUE[dtype(d)])}"><span class="bn">${esc(d.brand||"Untitled")}${d.example?` <span class="chip ex">Example</span>`:""}</span>
+      ${d.campaign?`<span class="muted" style="font-size:13px">${esc(d.campaign)}</span>`:""}
+      <span class="fee">${isMoney(d) ? (base(d)?money(base(d),d.currency)+(usageCharge(d)?` <span class="muted" style="font-size:11px">incl. ad rights</span>`:""):(dtype(d)==="Affiliate"?"Commission":"Fee TBC")) : (d.productValue?`Product worth ${money(d.productValue,d.currency)}`:"No cash fee")}</span>
+      <span class="meta">${typeChip(d)}${d.region?hchip(d.region,REGION_HUE[d.region]):""}${payChip(d)}${d.shootDate?hchip("Shoot "+fmtDate(d.shootDate),"violet"):""}${d.productsSent?hchip("Products: "+(d.productStatus||"Not sent yet"),PSTAT_HUE[d.productStatus||"Not sent yet"]):""}${revOpen(d)?`<span class="chip warn">${revOpen(d)} revision</span>`:""}${d.usageType&&d.usageType!=="Organic only"?`<span class="chip">Ad rights</span>`:""}</span></button>`).join("")}</div>`; }).join("")}</div>`;
+  } else {
+    body.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Brand</th><th>Type</th><th>Stage</th><th>Region</th><th>Shoot</th><th>Live</th><th>Revisions</th><th>Products</th><th>Usage</th><th>Rights end</th><th class="num">Ad rights</th><th class="num">Total</th><th>Payment</th><th>Due</th><th>Follow-up</th></tr></thead><tbody>
+    ${list.map(d=>`<tr data-id="${d.id}"><td><b>${esc(d.brand)}</b>${d.example?` <span class="chip ex">Ex</span>`:""}<div class="muted" style="font-size:12.5px">${esc(d.campaign||"")}</div></td><td>${typeChip(d)}</td><td>${hchip(d.stage||"Lead",STAGE_HUE[d.stage||"Lead"])}</td><td>${d.region?hchip(d.region,REGION_HUE[d.region]):""}</td>
+    <td class="mono">${fmtDate(d.shootDate)}</td><td class="mono">${fmtDate(d.goLive)}</td><td class="mono">${revUsed(d)}/${d.revisionsIncluded??"–"}</td><td style="min-width:160px">${d.productsSent?`${esc(d.productsSent)}<div style="margin-top:4px">${hchip(d.productStatus||"Not sent yet",PSTAT_HUE[d.productStatus||"Not sent yet"])}</div>`:"–"}</td><td>${esc(d.usageType||"")}${d.usageMonths?` · ${d.usageMonths}mo`:""}</td><td class="mono">${fmtDate(usageEnd(d))}</td><td class="num">${usageCharge(d)?money(usageCharge(d),d.currency):"–"}</td>
+    <td class="num">${isMoney(d)?(base(d)?money(base(d),d.currency):""):(d.productValue?money(d.productValue,d.currency):"–")}</td><td>${payChip(d)}</td><td class="mono">${fmtDate(payDue(d))}</td><td class="mono">${fmtDate(d.followUp)}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  }
+  body.querySelectorAll("[data-id]").forEach(el => el.onclick = () => openDeal(el.dataset.id));
+  v.querySelectorAll(".seg button[data-v]").forEach(b => b.onclick = () => { ui.dealView = b.dataset.v; saveUI(); render(); });
+  v.querySelectorAll(".seg button[data-t]").forEach(b => b.onclick = () => { ui.dealType = b.dataset.t; saveUI(); render(); });
+  const dq = $("#dq"); dq.oninput = () => { ui.dealFilter = dq.value; saveUI(); const pos = dq.selectionStart; render(); const n = $("#dq"); n.focus(); n.setSelectionRange(pos,pos); };
+  $("#newDeal").onclick = () => openDeal();
+  $("#csv").onclick = exportCSV;
+  bindExample();
+}
+
+function calEvents(){
+  const ev = [];
+  for(const d of state.deals){ if(d.stage==="Lost") continue; const o = () => openDeal(d.id);
+    if(d.shootDate) ev.push({date:d.shootDate,cls:"shoot",t:`Shoot · ${d.brand}`,o});
+    if(d.draftDue) ev.push({date:d.draftDue,cls:"draft",t:`Draft · ${d.brand}`,o});
+    if(d.goLive) ev.push({date:d.goLive,cls:"live",t:`Live · ${d.brand}`,o});
+    if(d.followUp) ev.push({date:d.followUp,cls:"fu",t:`Follow up · ${d.brand}`,o});
+    const pd = payDue(d); if(pd && outstanding(d)>0) ev.push({date:pd,cls:"pay",t:`Payment · ${d.brand}`,o});
+    const ue = usageEnd(d); if(ue) ev.push({date:ue,cls:"rights",t:`Rights end · ${d.brand}`,o});
+  }
+  for(const c of state.content) if(c.date) ev.push({date:c.date,cls:"post",t:`${c.status==="Posted"?"✓ ":""}${c.title}`,o:()=>openContent(c.id)});
+  for(const b of state.brands) if(b.followUp && !["Won","Not now"].includes(b.status)) ev.push({date:b.followUp,cls:"fu",t:`Pitch · ${b.name}`,o:()=>openBrand(b.id)});
+  return ev;
+}
+function viewCalendar(v){
+  const [y,m] = ui.calMonth.split("-").map(Number);
+  const first = new Date(y, m-1, 1); const startDow = (first.getDay()+6)%7; const start = new Date(y, m-1, 1-startDow);
+  const ev = calEvents(); const t = todayISO();
+  const days = []; for(let i=0;i<42;i++){ const d = new Date(start); d.setDate(start.getDate()+i); days.push(d); }
+  const shift = n => { const d = new Date(y, m-1+n, 1); ui.calMonth = d.toLocaleDateString("en-CA").slice(0,7); saveUI(); render(); };
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">Calendar</span><h1>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h1><p class="sub">Shoots, drafts, go-lives, payments, follow-ups and ad-rights expiries in one place.</p></div>
+  <div class="actions"><button class="btn" id="prev" aria-label="Previous month">←</button><button class="btn" id="tdy">Today</button><button class="btn" id="next" aria-label="Next month">→</button></div></div>
+  <div class="cal">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="dow">${d}</div>`).join("")}
+  ${days.map(d => { const iso = d.toLocaleDateString("en-CA"); const es = ev.filter(e=>e.date===iso);
+    return `<div class="day ${d.getMonth()!==m-1?"out":""} ${iso===t?"today":""}"><span class="n">${d.getDate()}</span>${es.map((e,i)=>`<button class="ev ${e.cls}" data-iso="${iso}" data-i="${i}" title="${esc(e.t)}">${esc(e.t)}</button>`).join("")}</div>`; }).join("")}</div>
+  <div class="legend"><span class="ev shoot" style="width:auto">Shoot</span><span class="ev draft" style="width:auto">Draft due</span><span class="ev post" style="width:auto">Content post</span><span class="ev live" style="width:auto">Live</span><span class="ev pay" style="width:auto">Payment due</span><span class="ev fu" style="width:auto">Follow-up</span><span class="ev rights" style="width:auto">Ad rights end</span></div>`;
+  v.querySelectorAll(".ev[data-iso]").forEach(b => b.onclick = () => ev.filter(e=>e.date===b.dataset.iso)[b.dataset.i].o());
+  $("#prev").onclick = () => shift(-1); $("#next").onclick = () => shift(1); $("#tdy").onclick = () => { ui.calMonth = todayISO().slice(0,7); saveUI(); render(); };
+}
+
+function viewContent(v){
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">Content</span><h1>Content plan</h1><p class="sub">Your own posts, from idea to published. Brand deliverables live in Collabs.</p></div>
+  <div class="actions"><button class="btn primary" id="newC">+ New idea</button></div></div>
+  ${exampleBanner()}
+  ${state.content.length ? `<div class="board">${CSTAT.map(s=>{ const cs = state.content.filter(c=>(c.status||"Idea")===s).sort((a,b)=>(a.date||"9").localeCompare(b.date||"9"));
+    return `<div class="col" style="${HUE(CSTAT_HUE[s])}"><h3><span>${s}</span><span class="mono">${cs.length}</span></h3>${cs.map(c=>`<button class="card" data-id="${c.id}" style="${HUE(PLAT_HUE[c.platform]||"slate")}"><span class="bn">${esc(c.title)}${c.example?` <span class="chip ex">Example</span>`:""}</span>
+    <span class="meta">${c.platform?hchip(c.platform,PLAT_HUE[c.platform]):""}${c.format?`<span class="chip">${esc(c.format)}</span>`:""}${c.pillar?`<span class="chip acc">${esc(c.pillar)}</span>`:""}${c.date?`<span class="chip ${diff(c.date)<0&&s!=="Posted"?"bad":""}">${fmtDate(c.date)}</span>`:""}</span></button>`).join("")}</div>`; }).join("")}</div>`
+  : `<div class="empty">No content ideas yet. Jot one down with <b>+ New idea</b>.</div>`}`;
+  v.querySelectorAll(".card[data-id]").forEach(el => el.onclick = () => openContent(el.dataset.id));
+  $("#newC").onclick = () => openContent();
+  bindExample();
+}
+function viewMoney(v){
+  const rows = state.deals.filter(d => isMoney(d) && base(d) && d.stage!=="Lost");
+  const kind = state.deals.filter(d => !isMoney(d) && d.stage!=="Lost");
+  const sum = (f) => { const o = {}; rows.forEach(d => { const c = d.currency||"INR"; const n = f(d); if(n) o[c]=(o[c]||0)+n; }); return Object.entries(o).map(([c,n])=>money(n,c)).join(" + ") || "₹0"; };
+  const overdue = d => d.payStatus!=="Not invoiced" && outstanding(d)>0 && payDue(d) && diff(payDue(d))<0 ? outstanding(d) : 0;
+  const thisYear = String(new Date().getFullYear());
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">Payments</span><h1>Money in</h1><p class="sub">Invoices, due dates and who still owes you. Due date = invoice date + payment terms. GST is added at 18% where you've ticked it.</p></div>
+  <div class="actions"><button class="btn" id="csv">Export sheet (CSV)</button></div></div>
+  <div class="totals">
+    <div class="total" style="${HUE("amber")}"><span class="eyebrow">Outstanding</span><b>${sum(d=> d.payStatus!=="Not invoiced" ? outstanding(d) : 0)}</b></div>
+    <div class="total" style="${HUE("red")}"><span class="eyebrow">Overdue</span><b>${sum(overdue)}</b></div>
+    <div class="total" style="${HUE("slate")}"><span class="eyebrow">Not yet invoiced</span><b>${sum(d=> (d.payStatus||"Not invoiced")==="Not invoiced" ? gross(d) : 0)}</b></div>
+    <div class="total" style="${HUE("rose")}"><span class="eyebrow">Barter & gifted ${thisYear}</span><b>${(()=>{ const o={}; kind.forEach(d=>{ if((d.goLive||d.updatedAt||"").startsWith(thisYear) && d.productValue){ const c=d.currency||"INR"; o[c]=(o[c]||0)+Number(d.productValue); } }); return Object.entries(o).map(([c,n])=>money(n,c)).join(" + ")||"₹0"; })()}</b><span class="muted" style="font-size:12px">${kind.length} collab${kind.length===1?"":"s"}, product value</span></div>
+    <div class="total" style="${HUE("green")}"><span class="eyebrow">Received ${thisYear}</span><b>${sum(d=> (d.paidOn||d.invoiceDate||"").startsWith(thisYear) ? (d.payStatus==="Paid"? gross(d) : Number(d.received)||0) : 0)}</b></div>
+  </div>
+  ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Brand</th><th>Invoice</th><th>Sent</th><th>Terms</th><th>Due</th><th class="num">Content</th><th class="num">Ad rights</th><th class="num">+GST</th><th class="num">Received</th><th class="num">Outstanding</th><th>Status</th></tr></thead><tbody>
+  ${rows.sort((a,b)=>(payDue(a)||"9").localeCompare(payDue(b)||"9")).map(d=>`<tr data-id="${d.id}"><td><b>${esc(d.brand)}</b>${d.example?` <span class="chip ex">Ex</span>`:""}</td><td class="mono">${esc(d.invoiceNo||"–")}</td><td class="mono">${fmtDate(d.invoiceDate)}</td><td class="mono">${d.invoiceDate?(d.payTerms??30)+"d":""}</td>
+  <td class="mono">${fmtDate(payDue(d))}${payDue(d)&&outstanding(d)>0&&d.payStatus!=="Not invoiced"?`<div class="muted" style="font-size:11px">${rel(payDue(d))}</div>`:""}</td><td class="num">${money(d.fee||0,d.currency)}</td><td class="num">${usageCharge(d)?money(usageCharge(d),d.currency):"–"}</td><td class="num">${d.gst?money(gross(d),d.currency):"–"}</td><td class="num">${d.received?money(d.received,d.currency):"–"}</td><td class="num">${outstanding(d)?money(outstanding(d),d.currency):"–"}</td><td>${payChip(d)}</td></tr>`).join("")}
+  </tbody></table></div>` : `<div class="empty">Add a fee to a collab and it shows up here.</div>`}
+  <p class="muted" style="font-size:13px;margin-top:14px">Indian brands usually deduct TDS (10% under section 194J for professional fees) before paying. Log the amount that actually lands in "Received" and keep the TDS certificate for your tax filing. Barter products are taxable too: under section 194R, brands deduct 10% TDS once products given to you pass ₹20,000 in a year, so log the product value on barter and gifted collabs.</p>`;
+  v.querySelectorAll("tr[data-id]").forEach(el => el.onclick = () => openDeal(el.dataset.id));
+  $("#csv").onclick = exportCSV;
+}
+
+function viewBrands(v){
+  const q = ui.brandFilter.toLowerCase();
+  const list = state.brands.filter(b => (ui.brandRegion==="All" || b.region===ui.brandRegion) && (ui.brandGroup==="All" || b.group===ui.brandGroup) && (!q || [b.name,b.category,b.why].join(" ").toLowerCase().includes(q)));
+  const order = s => BSTAT.indexOf(s||"To pitch");
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">Pitch list</span><h1>Brands to pitch</h1><p class="sub">New and fast-growing brands across India, the Gulf and abroad. Check each brand's recent posts and who runs their influencer team before you pitch.</p></div>
+  <div class="actions"><button class="btn primary" id="newB">+ Add brand</button></div></div>
+  <div class="toolbar"><div class="seg" role="group" aria-label="Category">${["All",...BGROUPS].map(g=>`<button data-g="${g}" ${g!=="All"?`data-hue style="${HUE(GROUP_HUE[g])}"`:""} aria-pressed="${ui.brandGroup===g}">${g==="All"?"All types":g}</button>`).join("")}</div></div>
+  <div class="toolbar"><div class="seg" role="group" aria-label="Region">${["All",...REGIONS].map(r=>`<button data-r="${r}" ${r!=="All"?`data-hue style="${HUE(REGION_HUE[r])}"`:""} aria-pressed="${ui.brandRegion===r}">${r==="All"?"All regions":r}</button>`).join("")}</div>
+  <input class="search" id="bq" placeholder="Search name or category" value="${esc(ui.brandFilter)}"></div>
+  ${list.length ? `<div class="grid">${list.sort((a,b)=>order(a.status)-order(b.status)).map(b=>`<div class="bcard" style="${HUE(GROUP_HUE[b.group]||"slate")}"><div class="top"><div class="who"><span class="av" aria-hidden="true">${esc((b.name||"?").trim()[0]||"?")}</span><div style="min-width:0"><h4>${esc(b.name)}</h4><span class="muted" style="font-size:12.5px">${esc([b.category,b.founded&&("since "+b.founded)].filter(Boolean).join(" · "))}</span></div></div>${hchip(b.status||"To pitch",BSTAT_HUE[b.status||"To pitch"])}</div>
+  <div class="meta" style="display:flex;gap:4px;flex-wrap:wrap">${b.group?hchip(b.group,GROUP_HUE[b.group]):""}${b.region?hchip(b.region,REGION_HUE[b.region]):""}</div>
+  <p>${esc(b.why||"")}</p>${b.followUp&&!["Won","Not now"].includes(b.status)?`<p class="mono" style="font-size:12px;color:${diff(b.followUp)<0?"var(--bad)":"var(--muted)"}">Follow up ${fmtDate(b.followUp)} · ${rel(b.followUp)}</p>`:""}
+  <div class="row"><button class="btn small" data-open="${b.id}">Edit</button>${b.website?`<a class="btn small ghost" href="${esc(/^https?:/.test(b.website)?b.website:"https://"+b.website)}" target="_blank" rel="noopener">Site ↗</a>`:""}</div></div>`).join("")}</div>`
+  : `<div class="empty">No brands here yet. Add one you've spotted with <b>+ Add brand</b>.</div>`}`;
+  v.querySelectorAll(".seg button[data-r]").forEach(b => b.onclick = () => { ui.brandRegion = b.dataset.r; saveUI(); render(); });
+  v.querySelectorAll(".seg button[data-g]").forEach(b => b.onclick = () => { ui.brandGroup = b.dataset.g; saveUI(); render(); });
+  const bq = $("#bq"); bq.oninput = () => { ui.brandFilter = bq.value; saveUI(); const pos = bq.selectionStart; render(); const n=$("#bq"); n.focus(); n.setSelectionRange(pos,pos); };
+  v.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openBrand(b.dataset.open));
+  $("#newB").onclick = () => openBrand();
+}
+/* ---------- profile ---------- */
+function viewProfile(v){
+  const p = state.profile;
+  const F = (k,l,t="text",ph="",full=false) => `<div class="f ${full?"full":""}"><label for="p_${k}">${l}</label>${t==="textarea"?`<textarea id="p_${k}" placeholder="${esc(ph)}">${esc(p[k]||"")}</textarea>`:`<input id="p_${k}" type="${t}" value="${esc(p[k]??"")}" placeholder="${esc(ph)}">`}</div>`;
+  v.innerHTML = `<div class="head"><div><span class="eyebrow">My profile</span><h1>About you</h1><p class="sub">Your details, rates and email sign-off in one place. Fill in what you're comfortable with.</p></div></div>
+  <form id="pform" style="max-width:720px"><div class="fg">
+  ${F("name","Name","text","Your name")}${F("handle","Main handle","text","@yourhandle")}
+  ${F("niche","Niche","text","e.g. skincare & modest fashion")}${F("city","Based in","text","e.g. Mumbai")}
+  ${F("platforms","Platforms & followers","text","IG 120k, YouTube 40k",true)}
+  ${F("audience","Audience","text","e.g. 70% women 18–34, top cities Mumbai, Delhi, Dubai",true)}
+  ${F("rates","Your base rates","textarea","Reel ₹60,000 · Story set ₹20,000 · YouTube integration ₹1,00,000 · Paid usage +30%/month",true)}
+  ${F("payTerms","Default payment terms (days)","number","30")}${F("email","Business email","email","")}
+  ${F("signature","Email sign-off","textarea","Warmly,\nName\nCreator · @handle · +91…",true)}
+  ${F("mediaKit","Media kit link","text","https://…",true)}
+  </div><div style="margin-top:16px;display:flex;gap:8px"><button class="btn primary" type="submit">Save profile</button></div></form>
+  ${settingsHTML()}`;
+  bindSettings();
+  $("#pform").onsubmit = e => { e.preventDefault(); const o = {}; ["name","handle","niche","city","platforms","audience","rates","payTerms","email","signature","mediaKit"].forEach(k => o[k] = $("#p_"+k).value.trim()); if(o.payTerms) o.payTerms = Number(o.payTerms); saveProfile(o); };
+}
+
+function settingsHTML(){
+  const g = CD.info();
+  return `<div class="settings">
+  <div class="setcard"><h2>Google Drive sync</h2>
+    ${g.connected ? `<p>Connected${g.email?` as <b>${esc(g.email)}</b>`:""}. Everything is saved as Markdown files in the <b>Collab Desk</b> folder in your Drive. ${esc(g.status)}</p>
+      <div class="row"><button class="btn primary" id="syncnow" type="button">Sync now</button>${g.folderUrl?`<a class="btn" href="${esc(g.folderUrl)}" target="_blank" rel="noopener">Open folder in Drive ↗</a>`:""}<button class="btn ghost danger" id="gdisc" type="button">Disconnect</button></div>`
+    : `<p>Not connected. Changes are kept on this device only. Connect Google Drive to sync your phone and computer.</p>
+      ${g.clientId ? "" : `<p>Paste the Google OAuth <b>Client ID</b> from your setup (it ends in <span class="mono">.apps.googleusercontent.com</span>).</p>`}
+      <div class="row">${g.builtInId ? "" : `<input type="text" id="gcid" placeholder="123….apps.googleusercontent.com" value="${esc(g.clientId||"")}" aria-label="Google Client ID">`}<button class="btn primary" id="gconn" type="button">Connect Google Drive</button></div>`}
+    <p>Works offline: edits are stored on this device and sent to Drive when you're back online. If the same item was changed on two devices, the most recent save wins.</p>
+  </div>
+  <div class="setcard"><h2>Your data as files</h2>
+    <p>Download everything as a .zip of Markdown files, or bring Markdown files back in (for example from a backup or another device). Imported items replace ones with the same id.</p>
+    <div class="row"><button class="btn" id="mdexp" type="button">Export Markdown (.zip)</button><button class="btn" id="mdimp" type="button">Import .md or .zip</button><button class="btn" id="csv2" type="button">Export sheet (CSV)</button><input type="file" id="mdfile" accept=".md,.zip,text/markdown,application/zip" multiple hidden></div>
+  </div></div>`;
+}
+function bindSettings(){
+  const on = (id, fn) => { const el = $("#"+id); if(el) el.onclick = fn; };
+  on("gconn", () => { const i = $("#gcid"); if(i && !i.value.trim()){ toast("Paste your Client ID first"); i.focus(); return; } CD.connect(i ? i.value.trim() : null); });
+  on("syncnow", () => CD.syncNow(true));
+  on("gdisc", () => { if(confirm("Disconnect Google Drive on this device? Your files stay in Drive and on this device.")) CD.disconnect(); });
+  on("mdexp", async () => { try{ await CD.exportZip(); }catch(e){ toast("Export needs a connection the first time. Try again online."); } });
+  on("mdimp", () => $("#mdfile").click());
+  on("csv2", exportCSV);
+  const f = $("#mdfile"); if(f) f.onchange = async () => { try{ const n = await CD.importFiles([...f.files]); toast(`Imported ${n} item${n===1?"":"s"}`); }catch(e){ toast(e?.message || "Couldn't import those files."); } f.value = ""; };
+}
+
+/* ---------- drawer & forms ---------- */
+const DEAL_FORM = [
+  ["Brand & contact", [["brand","Brand","text",{req:1}],["campaign","Campaign / product"],["dealType","Collab type","select",DTYPES],["region","Region","select",REGIONS],["stage","Stage","select",STAGES],["contactName","Contact person"],["contactEmail","Contact email","email"],["contactPhone","Phone / WhatsApp"],["agency","Agency (if any)"]]],
+  ["Deliverables & dates", [["deliverables","Deliverables","textarea",{full:1,ph:"1 Reel (45–60s) + 3 Stories with link sticker"}],["platforms","Platforms"],["shootLocation","Shoot location"],["shootDate","Shoot date","date"],["draftDue","Draft due to brand","date"],["goLive","Go-live date","date"],["contract","Contract","select",["Not sent","Sent","Signed","Email confirmation only"]]]],
+  ["Products for the shoot", [["productsSent","Products the brand is sending","textarea",{full:1,ph:"e.g. 2 × silicone food containers (blue, pink), 1 × lunch bag"}],["productStatus","Product status","select",PSTAT],["productETA","Expected delivery","date"],["productValue","Product value","number"],["productTracking","Courier / tracking no."],["returnRequired","Brand wants products returned","check"]]],
+  ["Revisions", null],
+  ["Usage & ad rights", [["usageType","Usage granted","select",USAGE],["usageMonths","Duration (months)","number"],["usageStart","Usage starts","date"],["usageFee","Ad rights charge","number"],["usageFeeBasis","Charged","select",["Flat fee","Per month"]],["usagePlatforms","Where they can use it",""],["exclMonths","Exclusivity (months)","number"],["exclCategory","Exclusive category","text",{ph:"e.g. no other sunscreen brands"}],["rawFootage","Raw footage handed over","check"],["usageNote","Other terms","textarea",{full:1,ph:"Cancellation fee, credit line, edits by brand allowed?"}]]],
+  ["Money", [["fee","Content fee (before tax)","number"],["currency","Currency","select",CURR],["gst","Add 18% GST","check"],["advancePct","Advance %","number"],["invoiceNo","Invoice no."],["invoiceDate","Invoice sent","date"],["payTerms","Payment terms (days)","number"],["payStatus","Payment status","select",PAY],["received","Amount received","number"],["paidOn","Paid on","date"]]],
+  ["Follow-up", [["followUp","Next follow-up","date"],["nextAction","What to chase","text",{ph:"Get feedback on draft v2"}],["notes","Notes","textarea",{full:1}]]],
+];
+let draft = null;
+function fieldHTML([k,l,t="text",o], obj){
+  const opts = Array.isArray(o) ? o : null; const meta = (!Array.isArray(o) && o) || {};
+  const val = obj[k] ?? "";
+  if(t==="check") return `<div class="f check"><input type="checkbox" id="f_${k}" ${val?"checked":""}><label for="f_${k}">${l}</label></div>`;
+  let input;
+  if(t==="select") input = `<select id="f_${k}">${opts.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select>`;
+  else if(t==="textarea") input = `<textarea id="f_${k}" placeholder="${esc(meta.ph||"")}">${esc(val)}</textarea>`;
+  else input = `<input id="f_${k}" type="${t||"text"}" value="${esc(val)}" placeholder="${esc(meta.ph||"")}" ${meta.req?"required":""}>`;
+  return `<div class="f ${meta.full||t==="textarea"?"full":""}"><label for="f_${k}">${l}</label>${input}</div>`;
+}
+function readFields(spec){ const o = {}; spec.forEach(([k,,t]) => { const el = $("#f_"+k); if(!el) return; if(t==="check") o[k] = el.checked; else if(t==="number") o[k] = el.value===""?"":Number(el.value); else o[k] = el.value.trim(); }); return o; }
+function closeDrawer(){ $("#drawerroot").innerHTML = ""; draft = null; document.removeEventListener("keydown", escClose); }
+function escClose(e){ if(e.key==="Escape") closeDrawer(); }
+function drawer(title, body, foot){
+  $("#drawerroot").innerHTML = `<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="dhead"><h2>${esc(title)}</h2><button class="btn ghost" id="dclose" aria-label="Close">✕</button></div><div class="dbody" id="dbody">${body}</div><div class="dfoot">${foot}</div></aside>`;
+  $("#scrim").onclick = closeDrawer; $("#dclose").onclick = closeDrawer; document.addEventListener("keydown", escClose);
+}
+function confirmBtn(btn, fn){ btn.onclick = () => { if(btn.dataset.armed){ fn(); } else { btn.dataset.armed = 1; btn.textContent = "Click again to delete"; setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent = "Delete"; } }, 3000); } }; }
+
+function openDeal(id){
+  const existing = state.deals.find(d=>d.id===id);
+  draft = existing ? structuredClone(existing) : {id:uid("d"), dealType:"Paid", stage:"Lead", region:"India", currency:"INR", payStatus:"Not invoiced", contract:"Not sent", usageType:"Organic only", revisionsIncluded:2, payTerms:state.profile.payTerms||30, revisions:[]};
+  draft.revisions ||= [];
+  const allSpec = DEAL_FORM.flatMap(s=>s[1]||[]);
+  const body = DEAL_FORM.map(([name, spec]) => name==="Revisions" ? `<fieldset style="${HUE("rose")}"><legend>Revisions</legend><div class="fg">${fieldHTML(["revisionsIncluded","Rounds included in fee","number"], draft)}<div class="f"><label>Used</label><div class="mono" id="revcount" style="padding:8px 0"></div></div></div><div class="revs" id="revs" style="margin-top:10px"></div><div class="addrev"><input id="revtxt" placeholder="Brand feedback, e.g. brighter lighting, show the SPF claim"><button class="btn small" type="button" id="revadd">Log revision</button></div></fieldset>`
+    : `<fieldset style="${HUE({"Brand & contact":"indigo","Deliverables & dates":"violet","Usage & ad rights":"orange","Products for the shoot":"teal","Money":"green","Follow-up":"red"}[name]||"slate")}"><legend>${name}</legend><div class="fg">${spec.map(f=>fieldHTML(f, draft)).join("")}${name==="Usage & ad rights"?`<div class="hint" id="usagehint"></div>`:""}${name==="Money"?`<div class="hint" id="moneyhint"></div>`:""}</div></fieldset>`).join("")
+;
+  drawer(existing ? draft.brand : "New collab", body, `${existing?`<button class="btn danger" id="del">Delete</button>`:""}<div class="r"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`);
+  const spec = [...allSpec, ["revisionsIncluded","","number"]];
+  const sync = () => Object.assign(draft, readFields(spec));
+  const hints = () => { sync();
+    const ue = usageEnd(draft), xe = exclEnd(draft);
+    $("#usagehint").innerHTML = draft.usageType==="Organic only" ? `Organic only: the brand can't run your content as ads. If they ask to boost it later, that's a new paid-usage fee.` :
+      `${usageCharge(draft)?`Ad rights charge <b>${money(usageCharge(draft), draft.currency)}</b>${draft.usageFeeBasis==="Per month"?` (${money(draft.usageFee, draft.currency)} × ${Number(draft.usageMonths)||1} months)`:""}, added to the invoice. `:`Add an ad rights charge: paid usage is usually priced on top of the content fee. `}${ue?`Ad rights end <b>${fmtDate(ue)}</b> (${rel(ue)}). You'll get a reminder 30 days before.`:"Add a duration and start date so I can track when ad rights expire."}${xe?` Exclusivity ends <b>${fmtDate(xe)}</b>.`:""} Never agree to perpetual or unlimited usage without pricing it.`;
+    const due = payDue(draft);
+    const t = dtype(draft);
+    if(t==="Gifted"){ $("#moneyhint").innerHTML = `<b>Gifted:</b> no fee and no obligation to post. If you do post, label it as gifted. Log the product value for your records.`; }
+    else if(t==="Barter"){ $("#moneyhint").innerHTML = `<b>Barter:</b> product in exchange for agreed content, no cash. Still agree deliverables, usage and revisions in writing. Log the product value: Indian brands may deduct 10% TDS (194R) on it.${draft.productValue?` Logged value <b>${money(draft.productValue, draft.currency)}</b>.`:""}`; }
+    else $("#moneyhint").innerHTML = (t==="Affiliate"&&!draft.fee) ? `<b>Affiliate:</b> you earn commission on sales. Note the rate and code in Notes. Add a fee if there's a flat amount too.` : base(draft) ? `${usageCharge(draft)?`Content ${money(draft.fee||0, draft.currency)} + ad rights ${money(usageCharge(draft), draft.currency)} · `:""}Invoice total <b>${money(gross(draft), draft.currency)}</b>${draft.advancePct?` · advance ${money(gross(draft)*draft.advancePct/100, draft.currency)}`:""}${due?` · due <b>${fmtDate(due)}</b> (${rel(due)})`:""}${outstanding(draft)&&draft.received?` · still owed ${money(outstanding(draft), draft.currency)}`:""}${draft.currency==="INR"&&draft.fee?` · expect ~10% TDS deducted by Indian companies`:""}` : `Add the fee to see the invoice total and due date.`;
+    $("#revcount").textContent = `${revUsed(draft)} of ${draft.revisionsIncluded===""?"?":draft.revisionsIncluded}${draft.revisionsIncluded!==""&&revUsed(draft)>Number(draft.revisionsIncluded)?" · over limit":""}`;
+  };
+  const drawRevs = () => { $("#revs").innerHTML = draft.revisions.length ? draft.revisions.map((r,i)=>`<div class="rev ${r.done?"done":""}"><input type="checkbox" data-i="${i}" ${r.done?"checked":""} aria-label="Mark done"><div><div class="txt">${esc(r.text)}</div><div class="d">Round ${i+1} · ${fmtDate(r.date)}</div></div><button class="btn small ghost" data-x="${i}" aria-label="Remove">✕</button></div>`).join("") : `<div class="muted" style="font-size:13px">No revision requests logged.</div>`;
+    $("#revs").querySelectorAll("input[data-i]").forEach(c => c.onchange = () => { draft.revisions[c.dataset.i].done = c.checked; drawRevs(); });
+    $("#revs").querySelectorAll("[data-x]").forEach(b => b.onclick = () => { draft.revisions.splice(b.dataset.x,1); drawRevs(); });
+    hints(); };
+  $("#revadd").onclick = () => { const t = $("#revtxt").value.trim(); if(!t) return; draft.revisions.push({text:t, date:todayISO(), done:false}); $("#revtxt").value=""; drawRevs(); };
+  $("#revtxt").onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); $("#revadd").click(); } };
+  $("#dbody").addEventListener("input", hints); $("#dbody").addEventListener("change", hints);
+  drawRevs();
+  $("#cancel").onclick = closeDrawer;
+  $("#save").onclick = () => { sync(); if(!draft.brand){ $("#f_brand").focus(); toast("Add the brand name first"); return; } if(draft.payStatus==="Paid" && !draft.paidOn) draft.paidOn = todayISO(); save("deals", draft); toast("Saved"); closeDrawer(); };
+  const del = $("#del"); if(del) confirmBtn(del, () => { remove("deals", draft.id); toast("Deleted"); closeDrawer(); });
+}
+const CONTENT_FORM = [["title","Working title","text",{req:1,full:1}],["status","Status","select",CSTAT],["date","Post date","date"],["platform","Platform","select",PLATFORMS],["format","Format","select",["Reel","Carousel","Static","Story","YouTube","Short","Live"]],["pillar","Content pillar","text",{ph:"e.g. Skincare routines"}],["hook","Hook / first line","text",{full:1}],["notes","Script, shot list, references","textarea",{full:1}]];
+function openContent(id){
+  const ex = state.content.find(c=>c.id===id);
+  const c = ex ? {...ex} : {id:uid("c"), status:"Idea", platform:"Instagram", format:"Reel"};
+  drawer(ex ? c.title : "New content idea", `<fieldset><div class="fg">${CONTENT_FORM.map(f=>fieldHTML(f,c)).join("")}</div></fieldset>`, `${ex?`<button class="btn danger" id="del">Delete</button>`:""}<div class="r"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`);
+  $("#cancel").onclick = closeDrawer;
+  $("#save").onclick = () => { const o = {...c, ...readFields(CONTENT_FORM)}; if(!o.title){ toast("Add a title first"); return; } save("content", o); toast("Saved"); closeDrawer(); };
+  const del = $("#del"); if(del) confirmBtn(del, () => { remove("content", c.id); toast("Deleted"); closeDrawer(); });
+}
+
+const BRAND_FORM = [["name","Brand","text",{req:1}],["region","Region","select",REGIONS],["group","Type","select",BGROUPS],["category","Category"],["founded","Founded"],["website","Website"],["handle","Instagram handle"],["contact","Contact (name / email)","text",{full:1}],["status","Status","select",BSTAT],["followUp","Follow up on","date"],["why","Why they fit","textarea",{full:1}],["notes","Notes","textarea",{full:1}]];
+function openBrand(id){
+  const ex = state.brands.find(b=>b.id===id);
+  const b = ex ? {...ex} : {id:uid("b"), region:"India", status:"To pitch"};
+  drawer(ex ? b.name : "Add a brand", `<fieldset><div class="fg">${BRAND_FORM.map(f=>fieldHTML(f,b)).join("")}</div></fieldset>`,
+    `${ex?`<button class="btn danger" id="del">Delete</button>`:""}<div class="r"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`);
+  $("#cancel").onclick = closeDrawer;
+  const collect = () => ({...b, ...readFields(BRAND_FORM)});
+  $("#save").onclick = () => { const o = collect(); if(!o.name){ toast("Add the brand name first"); return; } if(o.status==="Pitched" && !o.followUp) o.followUp = addDays(todayISO(), 5); save("brands", o); toast(o.status==="Pitched"&&!b.followUp?"Saved · follow-up set for 5 days":"Saved"); closeDrawer(); };
+  const del = $("#del"); if(del) confirmBtn(del, () => { remove("brands", b.id); toast("Deleted"); closeDrawer(); });
+}
+
+/* ---------- CSV export ---------- */
+async function exportCSV(){
+  const cols = [["brand","Brand"],[dtype,"Collab type"],["campaign","Campaign"],["region","Region"],["stage","Stage"],["contactName","Contact"],["contactEmail","Email"],["agency","Agency"],["deliverables","Deliverables"],["productsSent","Products sent"],["productStatus","Product status"],["productETA","Product ETA"],[d=>d.returnRequired?"Yes":"No","Return products"],["shootDate","Shoot date"],["draftDue","Draft due"],["goLive","Go live"],["revisionsIncluded","Revisions included"],[d=>revUsed(d),"Revisions used"],["usageType","Usage"],["usageMonths","Usage months"],["usageStart","Usage start"],["usageFee","Ad rights charge"],["usageFeeBasis","Charged"],[usageCharge,"Ad rights total"],[usageEnd,"Usage end"],["exclMonths","Exclusivity months"],["exclCategory","Exclusive category"],["contract","Contract"],["fee","Content fee"],["productValue","Product value"],["currency","Currency"],[d=>d.gst?"Yes":"No","GST"],[gross,"Invoice total"],["invoiceNo","Invoice no"],["invoiceDate","Invoice date"],["payTerms","Terms (days)"],[payDue,"Payment due"],["payStatus","Payment status"],["received","Received"],[outstanding,"Outstanding"],["followUp","Follow-up"],["nextAction","Next action"],["notes","Notes"]];
+  const cell = v => { v = String(v ?? ""); return /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v; };
+  const csv = [cols.map(c=>c[1]).join(","), ...state.deals.map(d => cols.map(([k]) => cell(typeof k==="function" ? k(d) : d[k])).join(","))].join("\n");
+  CD.download(`collabs-${todayISO()}.csv`, new Blob(["\ufeff"+csv], {type:"text/csv"}));
+}
+
+window.addEventListener("hashchange", () => { const t = location.hash.slice(1); if(t && t!==tab){ tab = t; render(); } });
+render();
+initStore().catch(e => { console.error(e); $("#view").innerHTML = `<div class="empty">This browser blocked on-device storage (private browsing?). Open Collab Desk in a normal Safari or Chrome window.</div>`; });
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
