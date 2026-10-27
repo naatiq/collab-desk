@@ -236,6 +236,24 @@ legend{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;z-index:60;font-weight:500}
 .banner{background:var(--gold-soft);color:var(--ink);border-radius:var(--r);padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .banner p{margin:0;flex:1;min-width:200px}
+/* progress checklist: badge, bar, filter pills, drawer rows (theme vars only) */
+.prog{display:flex;flex-direction:column;gap:5px}
+.prog .r1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bar{height:5px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--h)}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pill{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:20px;padding:7px 14px;min-height:36px;cursor:pointer;font-weight:500}
+.pill:hover{border-color:var(--muted)}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.msrow{display:flex;align-items:center;gap:8px;min-height:48px;border-top:1px solid var(--line)}
+.msrow:first-child{border-top:0}
+.msrow label{flex:1;min-width:0;min-height:48px;display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:500}
+.msrow input[type=checkbox]{width:24px;height:24px;margin:0;flex:none;accent-color:var(--h)}
+.msrow:not(.on) label{color:var(--muted)}
+.msd{border:0;background:none;color:var(--muted);font:12px var(--f-mono);min-height:44px;padding:0 6px;cursor:pointer;text-decoration:underline dotted;white-space:nowrap}
+.msx{min-width:44px;padding:0;text-decoration:none;font-size:15px}
+.msd.unset{color:var(--faint);font-style:italic}
+.msrow input[type=date]{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px 8px;min-height:36px;max-width:150px}
 @media (max-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){
   .app{grid-template-columns:minmax(0,1fr)}
@@ -350,6 +368,44 @@ const outstanding = d => !isMoney(d) || d.payStatus==="Paid"||d.payStatus==="Bar
 const revUsed = d => (d.revisions||[]).length;
 const revOpen = d => (d.revisions||[]).filter(r=>!r.done).length;
 
+/* ---------- progress checklist (milestones) ---------- */
+const MS = CD.MILESTONES;
+const MS_NEXT = {contract:["Contract","indigo"],products:["Products","teal"],shoot:["Shoot","violet"],draft:["Draft","rose"],approved:["Approval","rose"],posted:["Post","sky"]};
+const msApplies = (d,k) => k==="products" ? !!d.productsSent : (k==="invoiced"||k==="paid") ? isMoney(d) : true;
+const msImplied = (d,k) => ({contract:()=>d.contract==="Signed", products:()=>["Received","Return pending","Returned"].includes(d.productStatus),
+  shoot:()=>["Live","Done"].includes(d.stage), draft:()=>["Live","Done"].includes(d.stage), approved:()=>["Live","Done"].includes(d.stage), posted:()=>["Live","Done"].includes(d.stage),
+  invoiced:()=>["Invoiced","Part paid","Paid"].includes(d.payStatus), paid:()=>d.payStatus==="Paid"})[k]();
+const MS_FIELD = ["contract","products","posted","invoiced","paid"];   // these follow the fields (the stored value only supplies the date); shoot/draft/approved are stored || implied
+const ms = d => { const o = {}, st = d.milestones||{}; for(const [k] of MS) if(msApplies(d,k)) o[k] = MS_FIELD.includes(k) ? (msImplied(d,k) ? (st[k] || true) : "") : (st[k] || (msImplied(d,k) ? true : "")); return o; };
+const msCount = d => { const e = ms(d), ks = Object.keys(e), x = d.extras||[]; return {n:ks.filter(k=>e[k]).length + x.filter(i=>i.date).length, m:ks.length + x.length}; };
+const msNext = d => { if(d.stage==="Lost") return null; const e = ms(d);
+  if(e.posted){ if(isMoney(d) && !e.paid) return {label:"Payment pending", hue:"amber"};
+    const x = (d.extras||[]).find(i=>!i.date); if(x){ const t = String(x.text); return {label:"Next: "+(t.length>22 ? t.slice(0,22).trimEnd()+"…" : t), hue:"slate"}; }
+    return {label:"Done", hue:"green"}; }
+  const k = Object.keys(e).find(k => !e[k]); const [label,hue] = MS_NEXT[k]; return {label:"Next: "+label, hue}; };
+const msBadge = d => { const x = msNext(d); return x ? hchip(x.label, x.hue) : ""; };
+const msProg = d => { const x = msNext(d); if(!x) return ""; const {n,m} = msCount(d);
+  return `<span class="prog" style="${HUE(x.hue)}"><span class="r1">${msBadge(d)}<span class="mono muted" style="font-size:12px">${n}/${m}</span></span><span class="bar"><i style="width:${Math.round(100*n/m)}%"></i></span></span>`; };
+const ACTIVE = d => !["Lost","Lead","Negotiating"].includes(d.stage||"Lead");
+const STEPS = {"Shoot pending": d => ACTIVE(d) && !ms(d).shoot, "Not posted": d => ACTIVE(d) && !ms(d).posted, "Payment pending": d => d.stage!=="Lost" && isMoney(d) && !!ms(d).posted && !ms(d).paid};
+// keep the linked fields in step when a milestone is ticked / unticked (the checklist and the old fields must agree)
+function msLink(d, k, on){
+  const t = todayISO();
+  if(on){
+    if(k==="contract") d.contract = "Signed";
+    else if(k==="products") d.productStatus = "Received";
+    else if(k==="posted"){ if(d.stage==="Lost" || STAGES.indexOf(d.stage||"Lead") < STAGES.indexOf("Live")) d.stage = "Live"; }
+    else if(k==="invoiced"){ if(!msImplied(d,k)) d.payStatus = "Invoiced"; if(!d.invoiceDate) d.invoiceDate = t; }
+    else if(k==="paid"){ d.payStatus = "Paid"; if(!d.paidOn) d.paidOn = t; }
+  } else {
+    if(k==="contract"){ if(d.contract==="Signed") d.contract = "Sent"; }
+    else if(k==="products"){ if(msImplied(d,k)) d.productStatus = "Shipped"; }
+    else if(["shoot","draft","approved","posted"].includes(k)){ if(["Live","Done"].includes(d.stage)) d.stage = "Review"; }
+    else if(k==="invoiced"){ if(msImplied(d,k)) d.payStatus = "Not invoiced"; }
+    else if(k==="paid"){ if(d.payStatus==="Paid") d.payStatus = "Invoiced"; }
+  }
+}
+
 /* ---------- store: local copy on this device, synced to Google Drive as Markdown (sync.js) ---------- */
 const state = { deals:[], content:[], brands:[], profile:{}, ready:false };
 async function save(col, obj){
@@ -421,7 +477,7 @@ function attention(){
 
 /* ---------- routing ---------- */
 let tab = (location.hash||"").slice(1) || "today";
-let ui = { dealView:"board", dealFilter:"", dealType:"All", calMonth: todayISO().slice(0,7), brandRegion:"All", brandGroup:"All", brandFilter:"", chat:[] };
+let ui = { dealView:"board", dealFilter:"", dealType:"All", dealStep:"All", calMonth: todayISO().slice(0,7), brandRegion:"All", brandGroup:"All", brandFilter:"", chat:[] };
 try { Object.assign(ui, JSON.parse(localStorage.getItem("collabdesk.ui")||"{}"), {chat:[]}); } catch {}
 const saveUI = () => { try{ const {chat, ...rest} = ui; localStorage.setItem("collabdesk.ui", JSON.stringify(rest)); }catch{} };
 function go(t){ tab = t; try{ history.replaceState(null,"","#"+t); }catch{} render(); window.scrollTo(0,0); }
@@ -499,10 +555,13 @@ function payChip(d){ const s = d.payStatus||"Not invoiced"; const due = payDue(d
   return hchip(s, {"Not invoiced":"slate","Invoiced":"amber","Part paid":"sky"}[s]); }
 function viewDeals(v){
   const q = ui.dealFilter.toLowerCase();
-  const list = state.deals.filter(d => (ui.dealType==="All" || dtype(d)===ui.dealType) && (!q || [d.brand,d.campaign,d.agency,d.region].join(" ").toLowerCase().includes(q)));
+  const pre = state.deals.filter(d => (ui.dealType==="All" || dtype(d)===ui.dealType) && (!q || [d.brand,d.campaign,d.agency,d.region].join(" ").toLowerCase().includes(q)));
+  if(ui.dealStep!=="All" && !STEPS[ui.dealStep]) ui.dealStep = "All";
+  const list = ui.dealStep==="All" ? pre : pre.filter(STEPS[ui.dealStep]);
   v.innerHTML = `<div class="head"><div><span class="eyebrow">Collabs</span><h1>Brand deals</h1><p class="sub">Every collab from first email to final payment. Open one to log revisions, usage rights and money.</p></div>
   <div class="actions"><button class="btn" id="csv">Export sheet (CSV)</button><button class="btn primary" id="newDeal">+ New collab</button></div></div>
   ${exampleBanner()}
+  <div class="pills" role="group" aria-label="Progress filter">${["All",...Object.keys(STEPS)].map(s=>`<button class="pill" data-s="${s}" aria-pressed="${ui.dealStep===s}">${s}${s==="All"?"":` (${pre.filter(STEPS[s]).length})`}</button>`).join("")}</div>
   <div class="toolbar"><div class="seg" role="group" aria-label="View"><button data-v="board" aria-pressed="${ui.dealView==="board"}">Pipeline</button><button data-v="sheet" aria-pressed="${ui.dealView==="sheet"}">Sheet</button></div>
   <div class="seg" role="group" aria-label="Collab type">${["All",...DTYPES].map(t=>`<button data-t="${t}" ${t!=="All"?`data-hue style="${HUE(DTYPE_HUE[t])}"`:""} aria-pressed="${ui.dealType===t}">${t==="All"?"All types":t}</button>`).join("")}</div>
   <input class="search" id="dq" placeholder="Search brand, agency, region" value="${esc(ui.dealFilter)}"></div>
@@ -510,21 +569,23 @@ function viewDeals(v){
   const body = $("#dealsbody");
   if(!state.deals.length){ body.innerHTML = `<div class="empty">No collabs yet. Add the first one with <b>+ New collab</b>.</div>`; }
   else if(ui.dealView==="board"){
-    body.innerHTML = `<div class="board">${STAGES.map(s => { const ds = list.filter(d=>(d.stage||"Lead")===s);
+    const stepOn = ui.dealStep!=="All";
+    body.innerHTML = stepOn && !list.length ? `<div class="empty">Nothing here right now.</div>` : `<div class="board">${STAGES.filter(s => !stepOn || list.some(d=>(d.stage||"Lead")===s)).map(s => { const ds = list.filter(d=>(d.stage||"Lead")===s);
       return `<div class="col" style="${HUE(STAGE_HUE[s])}"><h3><span title="${esc(STAGE_HINT[s])}">${s}</span><span class="mono">${ds.length}</span></h3>${ds.map(d=>`
       <button class="card" data-id="${d.id}" style="${HUE(DTYPE_HUE[dtype(d)])}"><span class="bn">${esc(d.brand||"Untitled")}${d.example?` <span class="chip ex">Example</span>`:""}</span>
-      ${d.campaign?`<span class="muted" style="font-size:13px">${esc(d.campaign)}</span>`:""}
+      ${d.campaign?`<span class="muted" style="font-size:13px">${esc(d.campaign)}</span>`:""}${msProg(d)}
       <span class="fee">${isMoney(d) ? (base(d)?money(base(d),d.currency)+(usageCharge(d)?` <span class="muted" style="font-size:11px">incl. ad rights</span>`:""):(dtype(d)==="Affiliate"?"Commission":"Fee TBC")) : (d.productValue?`Product worth ${money(d.productValue,d.currency)}`:"No cash fee")}</span>
       <span class="meta">${typeChip(d)}${d.region?hchip(d.region,REGION_HUE[d.region]):""}${payChip(d)}${d.shootDate?hchip("Shoot "+fmtDate(d.shootDate),"violet"):""}${d.productsSent?hchip("Products: "+(d.productStatus||"Not sent yet"),PSTAT_HUE[d.productStatus||"Not sent yet"]):""}${revOpen(d)?`<span class="chip warn">${revOpen(d)} revision</span>`:""}${d.usageType&&d.usageType!=="Organic only"?`<span class="chip">Ad rights</span>`:""}</span></button>`).join("")}</div>`; }).join("")}</div>`;
   } else {
-    body.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Brand</th><th>Type</th><th>Stage</th><th>Region</th><th>Shoot</th><th>Live</th><th>Revisions</th><th>Products</th><th>Usage</th><th>Rights end</th><th class="num">Ad rights</th><th class="num">Total</th><th>Payment</th><th>Due</th><th>Follow-up</th></tr></thead><tbody>
-    ${list.map(d=>`<tr data-id="${d.id}"><td><b>${esc(d.brand)}</b>${d.example?` <span class="chip ex">Ex</span>`:""}<div class="muted" style="font-size:12.5px">${esc(d.campaign||"")}</div></td><td>${typeChip(d)}</td><td>${hchip(d.stage||"Lead",STAGE_HUE[d.stage||"Lead"])}</td><td>${d.region?hchip(d.region,REGION_HUE[d.region]):""}</td>
+    body.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Brand</th><th>Type</th><th>Stage</th><th>Progress</th><th>Region</th><th>Shoot</th><th>Live</th><th>Revisions</th><th>Products</th><th>Usage</th><th>Rights end</th><th class="num">Ad rights</th><th class="num">Total</th><th>Payment</th><th>Due</th><th>Follow-up</th></tr></thead><tbody>
+    ${list.map(d=>`<tr data-id="${d.id}"><td><b>${esc(d.brand)}</b>${d.example?` <span class="chip ex">Ex</span>`:""}<div class="muted" style="font-size:12.5px">${esc(d.campaign||"")}</div></td><td>${typeChip(d)}</td><td>${hchip(d.stage||"Lead",STAGE_HUE[d.stage||"Lead"])}</td><td style="white-space:nowrap">${d.stage==="Lost"?"–":`<span class="mono">${msCount(d).n}/${msCount(d).m}</span> ${msBadge(d)}`}</td><td>${d.region?hchip(d.region,REGION_HUE[d.region]):""}</td>
     <td class="mono">${fmtDate(d.shootDate)}</td><td class="mono">${fmtDate(d.goLive)}</td><td class="mono">${revUsed(d)}/${d.revisionsIncluded??"–"}</td><td style="min-width:160px">${d.productsSent?`${esc(d.productsSent)}<div style="margin-top:4px">${hchip(d.productStatus||"Not sent yet",PSTAT_HUE[d.productStatus||"Not sent yet"])}</div>`:"–"}</td><td>${esc(d.usageType||"")}${d.usageMonths?` · ${d.usageMonths}mo`:""}</td><td class="mono">${fmtDate(usageEnd(d))}</td><td class="num">${usageCharge(d)?money(usageCharge(d),d.currency):"–"}</td>
     <td class="num">${isMoney(d)?(base(d)?money(base(d),d.currency):""):(d.productValue?money(d.productValue,d.currency):"–")}</td><td>${payChip(d)}</td><td class="mono">${fmtDate(payDue(d))}</td><td class="mono">${fmtDate(d.followUp)}</td></tr>`).join("")}
     </tbody></table></div>`;
   }
   body.querySelectorAll("[data-id]").forEach(el => el.onclick = () => openDeal(el.dataset.id));
   v.querySelectorAll(".seg button[data-v]").forEach(b => b.onclick = () => { ui.dealView = b.dataset.v; saveUI(); render(); });
+  v.querySelectorAll(".pill[data-s]").forEach(b => b.onclick = () => { ui.dealStep = b.dataset.s; saveUI(); render(); });
   v.querySelectorAll(".seg button[data-t]").forEach(b => b.onclick = () => { ui.dealType = b.dataset.t; saveUI(); render(); });
   const dq = $("#dq"); dq.oninput = () => { ui.dealFilter = dq.value; saveUI(); const pos = dq.selectionStart; render(); const n = $("#dq"); n.focus(); n.setSelectionRange(pos,pos); };
   $("#newDeal").onclick = () => openDeal();
@@ -683,6 +744,7 @@ const DEAL_FORM = [
   ["Follow-up", [["followUp","Next follow-up","date"],["nextAction","What to chase","text",{ph:"Get feedback on draft v2"}],["notes","Notes","textarea",{full:1}]]],
 ];
 let draft = null;
+const materialize = d => (d.milestones = ms(d), d);
 function fieldHTML([k,l,t="text",o], obj){
   const opts = Array.isArray(o) ? o : null; const meta = (!Array.isArray(o) && o) || {};
   const val = obj[k] ?? "";
@@ -707,7 +769,7 @@ function openDeal(id){
   draft = existing ? structuredClone(existing) : {id:uid("d"), dealType:"Paid", stage:"Lead", region:"India", currency:"INR", payStatus:"Not invoiced", contract:"Not sent", usageType:"Organic only", revisionsIncluded:2, payTerms:state.profile.payTerms||30, revisions:[]};
   draft.revisions ||= [];
   const allSpec = DEAL_FORM.flatMap(s=>s[1]||[]);
-  const body = DEAL_FORM.map(([name, spec]) => name==="Revisions" ? `<fieldset style="${HUE("rose")}"><legend>Revisions</legend><div class="fg">${fieldHTML(["revisionsIncluded","Rounds included in fee","number"], draft)}<div class="f"><label>Used</label><div class="mono" id="revcount" style="padding:8px 0"></div></div></div><div class="revs" id="revs" style="margin-top:10px"></div><div class="addrev"><input id="revtxt" placeholder="Brand feedback, e.g. brighter lighting, show the SPF claim"><button class="btn small" type="button" id="revadd">Log revision</button></div></fieldset>`
+  const body = `<fieldset style="${HUE("amber")}"><legend>Progress <span id="msn"></span></legend><div id="mslist"></div><div class="addrev"><input id="extratxt" placeholder="Add your own step, e.g. 3 Stories posted" aria-label="Add your own step"><button class="btn small" type="button" id="extraadd">Add</button></div></fieldset>` + DEAL_FORM.map(([name, spec]) => name==="Revisions" ? `<fieldset style="${HUE("rose")}"><legend>Revisions</legend><div class="fg">${fieldHTML(["revisionsIncluded","Rounds included in fee","number"], draft)}<div class="f"><label>Used</label><div class="mono" id="revcount" style="padding:8px 0"></div></div></div><div class="revs" id="revs" style="margin-top:10px"></div><div class="addrev"><input id="revtxt" placeholder="Brand feedback, e.g. brighter lighting, show the SPF claim"><button class="btn small" type="button" id="revadd">Log revision</button></div></fieldset>`
     : `<fieldset style="${HUE({"Brand & contact":"indigo","Deliverables & dates":"violet","Usage & ad rights":"orange","Products for the shoot":"teal","Money":"green","Follow-up":"red"}[name]||"slate")}"><legend>${name}</legend><div class="fg">${spec.map(f=>fieldHTML(f, draft)).join("")}${name==="Usage & ad rights"?`<div class="hint" id="usagehint"></div>`:""}${name==="Money"?`<div class="hint" id="moneyhint"></div>`:""}</div></fieldset>`).join("")
 ;
   drawer(existing ? draft.brand : "New collab", body, `${existing?`<button class="btn danger" id="del">Delete</button>`:""}<div class="r"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`);
@@ -730,10 +792,35 @@ function openDeal(id){
     hints(); };
   $("#revadd").onclick = () => { const t = $("#revtxt").value.trim(); if(!t) return; draft.revisions.push({text:t, date:todayISO(), done:false}); $("#revtxt").value=""; drawRevs(); };
   $("#revtxt").onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); $("#revadd").click(); } };
-  $("#dbody").addEventListener("input", hints); $("#dbody").addEventListener("change", hints);
-  drawRevs();
+  const drawMs = () => { const f = document.activeElement, inl = f && f.closest && f.closest("#mslist"), fk = inl && (f.dataset.k ? `[data-k="${f.dataset.k}"]` : f.dataset.x!==undefined ? `[data-x="${f.dataset.x}"]` : ""), e = ms(draft), {n,m} = msCount(draft);
+    $("#msn").textContent = `· ${n}/${m}`;
+    $("#mslist").innerHTML = MS.filter(([k]) => k in e).map(([k,l]) => { const v = e[k];
+      return `<div class="msrow ${v?"on":""}"><label><input type="checkbox" data-k="${k}" ${v?"checked":""}><span>${l}</span></label>${v?`<button type="button" class="msd ${v===true?"unset":""}" data-d="${k}" title="Change date">${v===true?"date not set":fmtDate(v)}</button>`:""}</div>`; }).join("")
+      + (draft.extras||[]).map((x,i) => `<div class="msrow ${x.date?"on":""}"><label><input type="checkbox" data-x="${i}" ${x.date?"checked":""}><span>${esc(x.text)}</span></label>${x.date?`<button type="button" class="msd ${x.date===true?"unset":""}" data-xd="${i}" title="Change date">${x.date===true?"date not set":fmtDate(x.date)}</button>`:""}<button type="button" class="msd msx" data-xr="${i}" aria-label="Remove item">✕</button></div>`).join("");
+    if(fk){ const el = $(`#mslist ${fk}`); if(el) el.focus(); } };
+  // apply a milestone change to the draft, show it in the form, and save straight away (not for a new collab with no brand yet)
+  const msCommit = () => { drawMs(); if(!draft.brand) return; save("deals", materialize(structuredClone(draft))); toast("Saved"); };
+  const msTick = (k, on) => { sync(); draft.milestones = {...(draft.milestones||{}), [k]: on ? todayISO() : ""}; msLink(draft, k, on);
+    ["stage","contract","productStatus","payStatus","invoiceDate","paidOn"].forEach(f => { const el = $("#f_"+f); if(el) el.value = draft[f] ?? ""; }); msCommit(); };
+  const exSet = (i, date) => { sync(); draft.extras = draft.extras.map((x,j) => j===i ? {...x, date} : x); msCommit(); };
+  const exAdd = () => { const inp = $("#extratxt"), text = inp.value.replace(/\s+/g," ").trim(); if(!text) return;
+    if(MS.some(([,l]) => l.toLowerCase()===text.toLowerCase())){ toast("That step is already in the list"); return; }
+    sync(); draft.extras = [...(draft.extras||[]), {text, date:""}]; inp.value = ""; msCommit(); };
+  $("#extraadd").onclick = exAdd; $("#extratxt").onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); exAdd(); } };
+  $("#mslist").onchange = e => { const t = e.target, d = t.dataset;
+    if(d.k) msTick(d.k, t.checked);
+    else if(d.dd){ sync(); draft.milestones = {...(draft.milestones||{}), [d.dd]: t.value || true}; msCommit(); }
+    else if(d.x!==undefined) exSet(+d.x, t.checked ? todayISO() : "");
+    else if(d.xdd!==undefined) exSet(+d.xdd, t.value || true); };
+  $("#mslist").onclick = e => { const r = e.target.closest("[data-xr]");
+    if(r){ sync(); draft.extras = draft.extras.filter((x,j) => j!==+r.dataset.xr); msCommit(); return; }
+    const b = e.target.closest("[data-d],[data-xd]"); if(!b) return; const x = b.dataset.xd!==undefined, k = x ? b.dataset.xd : b.dataset.d, v = x ? draft.extras[k].date : ms(draft)[k];
+    b.outerHTML = `<input type="date" data-${x?"xdd":"dd"}="${k}" value="${v===true?"":esc(v)}" aria-label="Date">`; const i = $(`#mslist [data-${x?"xdd":"dd"}="${k}"]`); i.focus(); try{ i.showPicker(); }catch{} };
+  const watch = e => { hints(); if(/^f_(stage|contract|productStatus|payStatus|productsSent|dealType)$/.test(e.target.id)) drawMs(); };
+  $("#dbody").addEventListener("input", watch); $("#dbody").addEventListener("change", watch);
+  drawMs(); drawRevs();
   $("#cancel").onclick = closeDrawer;
-  $("#save").onclick = () => { sync(); if(!draft.brand){ $("#f_brand").focus(); toast("Add the brand name first"); return; } if(draft.payStatus==="Paid" && !draft.paidOn) draft.paidOn = todayISO(); save("deals", draft); toast("Saved"); closeDrawer(); };
+  $("#save").onclick = () => { sync(); if(!draft.brand){ $("#f_brand").focus(); toast("Add the brand name first"); return; } if(draft.payStatus==="Paid" && !draft.paidOn) draft.paidOn = todayISO(); save("deals", materialize(draft)); toast("Saved"); closeDrawer(); };
   const del = $("#del"); if(del) confirmBtn(del, () => { remove("deals", draft.id); toast("Deleted"); closeDrawer(); });
 }
 const CONTENT_FORM = [["title","Working title","text",{req:1,full:1}],["status","Status","select",CSTAT],["date","Post date","date"],["platform","Platform","select",PLATFORMS],["format","Format","select",["Reel","Carousel","Static","Story","YouTube","Short","Live"]],["pillar","Content pillar","text",{ph:"e.g. Skincare routines"}],["hook","Hook / first line","text",{full:1}],["notes","Script, shot list, references","textarea",{full:1}]];
