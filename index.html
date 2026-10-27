@@ -231,6 +231,7 @@ legend{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase
 .msrow input[type=checkbox]{width:24px;height:24px;margin:0;flex:none;accent-color:var(--h)}
 .msrow:not(.on) label{color:var(--muted)}
 .msd{border:0;background:none;color:var(--muted);font:12px var(--f-mono);min-height:44px;padding:0 6px;cursor:pointer;text-decoration:underline dotted;white-space:nowrap}
+.msx{min-width:44px;padding:0;text-decoration:none;font-size:15px}
 .msd.unset{color:var(--faint);font-style:italic}
 .msrow input[type=date]{border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px 8px;min-height:36px;max-width:150px}
 @media (max-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:minmax(0,1fr)}}
@@ -345,9 +346,11 @@ const msImplied = (d,k) => ({contract:()=>d.contract==="Signed", products:()=>["
   invoiced:()=>["Invoiced","Part paid","Paid"].includes(d.payStatus), paid:()=>d.payStatus==="Paid"})[k]();
 const MS_FIELD = ["contract","products","posted","invoiced","paid"];   // these follow the fields (the stored value only supplies the date); shoot/draft/approved are stored || implied
 const ms = d => { const o = {}, st = d.milestones||{}; for(const [k] of MS) if(msApplies(d,k)) o[k] = MS_FIELD.includes(k) ? (msImplied(d,k) ? (st[k] || true) : "") : (st[k] || (msImplied(d,k) ? true : "")); return o; };
-const msCount = d => { const e = ms(d), ks = Object.keys(e); return {n:ks.filter(k=>e[k]).length, m:ks.length}; };
+const msCount = d => { const e = ms(d), ks = Object.keys(e), x = d.extras||[]; return {n:ks.filter(k=>e[k]).length + x.filter(i=>i.date).length, m:ks.length + x.length}; };
 const msNext = d => { if(d.stage==="Lost") return null; const e = ms(d);
-  if(e.posted) return isMoney(d) && !e.paid ? {label:"Payment pending", hue:"amber"} : {label:"Done", hue:"green"};
+  if(e.posted){ if(isMoney(d) && !e.paid) return {label:"Payment pending", hue:"amber"};
+    const x = (d.extras||[]).find(i=>!i.date); if(x){ const t = String(x.text); return {label:"Next: "+(t.length>22 ? t.slice(0,22).trimEnd()+"…" : t), hue:"slate"}; }
+    return {label:"Done", hue:"green"}; }
   const k = Object.keys(e).find(k => !e[k]); const [label,hue] = MS_NEXT[k]; return {label:"Next: "+label, hue}; };
 const msBadge = d => { const x = msNext(d); return x ? hchip(x.label, x.hue) : ""; };
 const msProg = d => { const x = msNext(d); if(!x) return ""; const {n,m} = msCount(d);
@@ -728,7 +731,7 @@ function openDeal(id){
   draft = existing ? structuredClone(existing) : {id:uid("d"), dealType:"Paid", stage:"Lead", region:"India", currency:"INR", payStatus:"Not invoiced", contract:"Not sent", usageType:"Organic only", revisionsIncluded:2, payTerms:state.profile.payTerms||30, revisions:[]};
   draft.revisions ||= [];
   const allSpec = DEAL_FORM.flatMap(s=>s[1]||[]);
-  const body = `<fieldset style="${HUE("amber")}"><legend>Progress <span id="msn"></span></legend><div id="mslist"></div></fieldset>` + DEAL_FORM.map(([name, spec]) => name==="Revisions" ? `<fieldset style="${HUE("rose")}"><legend>Revisions</legend><div class="fg">${fieldHTML(["revisionsIncluded","Rounds included in fee","number"], draft)}<div class="f"><label>Used</label><div class="mono" id="revcount" style="padding:8px 0"></div></div></div><div class="revs" id="revs" style="margin-top:10px"></div><div class="addrev"><input id="revtxt" placeholder="Brand feedback, e.g. brighter lighting, show the SPF claim"><button class="btn small" type="button" id="revadd">Log revision</button></div></fieldset>`
+  const body = `<fieldset style="${HUE("amber")}"><legend>Progress <span id="msn"></span></legend><div id="mslist"></div><div class="addrev"><input id="extratxt" placeholder="Add your own step, e.g. 3 Stories posted" aria-label="Add your own step"><button class="btn small" type="button" id="extraadd">Add</button></div></fieldset>` + DEAL_FORM.map(([name, spec]) => name==="Revisions" ? `<fieldset style="${HUE("rose")}"><legend>Revisions</legend><div class="fg">${fieldHTML(["revisionsIncluded","Rounds included in fee","number"], draft)}<div class="f"><label>Used</label><div class="mono" id="revcount" style="padding:8px 0"></div></div></div><div class="revs" id="revs" style="margin-top:10px"></div><div class="addrev"><input id="revtxt" placeholder="Brand feedback, e.g. brighter lighting, show the SPF claim"><button class="btn small" type="button" id="revadd">Log revision</button></div></fieldset>`
     : `<fieldset style="${HUE({"Brand & contact":"indigo","Deliverables & dates":"violet","Usage & ad rights":"orange","Products for the shoot":"teal","Money":"green","Follow-up":"red"}[name]||"slate")}"><legend>${name}</legend><div class="fg">${spec.map(f=>fieldHTML(f, draft)).join("")}${name==="Usage & ad rights"?`<div class="hint" id="usagehint"></div>`:""}${name==="Money"?`<div class="hint" id="moneyhint"></div>`:""}</div></fieldset>`).join("")
 ;
   drawer(existing ? draft.brand : "New collab", body, `${existing?`<button class="btn danger" id="del">Delete</button>`:""}<div class="r"><button class="btn" id="cancel">Cancel</button><button class="btn primary" id="save">Save</button></div>`);
@@ -751,18 +754,30 @@ function openDeal(id){
     hints(); };
   $("#revadd").onclick = () => { const t = $("#revtxt").value.trim(); if(!t) return; draft.revisions.push({text:t, date:todayISO(), done:false}); $("#revtxt").value=""; drawRevs(); };
   $("#revtxt").onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); $("#revadd").click(); } };
-  const drawMs = () => { const f = document.activeElement, fk = f && f.dataset && f.dataset.k, e = ms(draft), {n,m} = msCount(draft);
+  const drawMs = () => { const f = document.activeElement, inl = f && f.closest && f.closest("#mslist"), fk = inl && (f.dataset.k ? `[data-k="${f.dataset.k}"]` : f.dataset.x!==undefined ? `[data-x="${f.dataset.x}"]` : ""), e = ms(draft), {n,m} = msCount(draft);
     $("#msn").textContent = `· ${n}/${m}`;
     $("#mslist").innerHTML = MS.filter(([k]) => k in e).map(([k,l]) => { const v = e[k];
-      return `<div class="msrow ${v?"on":""}"><label><input type="checkbox" data-k="${k}" ${v?"checked":""}><span>${l}</span></label>${v?`<button type="button" class="msd ${v===true?"unset":""}" data-d="${k}" title="Change date">${v===true?"date not set":fmtDate(v)}</button>`:""}</div>`; }).join("");
-    if(fk){ const el = $(`#mslist [data-k="${fk}"]`); if(el) el.focus(); } };
+      return `<div class="msrow ${v?"on":""}"><label><input type="checkbox" data-k="${k}" ${v?"checked":""}><span>${l}</span></label>${v?`<button type="button" class="msd ${v===true?"unset":""}" data-d="${k}" title="Change date">${v===true?"date not set":fmtDate(v)}</button>`:""}</div>`; }).join("")
+      + (draft.extras||[]).map((x,i) => `<div class="msrow ${x.date?"on":""}"><label><input type="checkbox" data-x="${i}" ${x.date?"checked":""}><span>${esc(x.text)}</span></label>${x.date?`<button type="button" class="msd ${x.date===true?"unset":""}" data-xd="${i}" title="Change date">${x.date===true?"date not set":fmtDate(x.date)}</button>`:""}<button type="button" class="msd msx" data-xr="${i}" aria-label="Remove item">✕</button></div>`).join("");
+    if(fk){ const el = $(`#mslist ${fk}`); if(el) el.focus(); } };
   // apply a milestone change to the draft, show it in the form, and save straight away (not for a new collab with no brand yet)
   const msCommit = () => { drawMs(); if(!draft.brand) return; save("deals", materialize(structuredClone(draft))); toast("Saved"); };
   const msTick = (k, on) => { sync(); draft.milestones = {...(draft.milestones||{}), [k]: on ? todayISO() : ""}; msLink(draft, k, on);
     ["stage","contract","productStatus","payStatus","invoiceDate","paidOn"].forEach(f => { const el = $("#f_"+f); if(el) el.value = draft[f] ?? ""; }); msCommit(); };
-  $("#mslist").onchange = e => { const c = e.target.closest("[data-k]"); if(c) msTick(c.dataset.k, c.checked); else if(e.target.dataset.dd){ sync(); draft.milestones = {...(draft.milestones||{}), [e.target.dataset.dd]: e.target.value || true}; msCommit(); } };
-  $("#mslist").onclick = e => { const b = e.target.closest("[data-d]"); if(!b) return; const k = b.dataset.d, v = ms(draft)[k];
-    b.outerHTML = `<input type="date" data-dd="${k}" value="${v===true?"":esc(v)}" aria-label="Date">`; const i = $(`#mslist [data-dd="${k}"]`); i.focus(); try{ i.showPicker(); }catch{} };
+  const exSet = (i, date) => { sync(); draft.extras = draft.extras.map((x,j) => j===i ? {...x, date} : x); msCommit(); };
+  const exAdd = () => { const inp = $("#extratxt"), text = inp.value.replace(/\s+/g," ").trim(); if(!text) return;
+    if(MS.some(([,l]) => l.toLowerCase()===text.toLowerCase())){ toast("That step is already in the list"); return; }
+    sync(); draft.extras = [...(draft.extras||[]), {text, date:""}]; inp.value = ""; msCommit(); };
+  $("#extraadd").onclick = exAdd; $("#extratxt").onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); exAdd(); } };
+  $("#mslist").onchange = e => { const t = e.target, d = t.dataset;
+    if(d.k) msTick(d.k, t.checked);
+    else if(d.dd){ sync(); draft.milestones = {...(draft.milestones||{}), [d.dd]: t.value || true}; msCommit(); }
+    else if(d.x!==undefined) exSet(+d.x, t.checked ? todayISO() : "");
+    else if(d.xdd!==undefined) exSet(+d.xdd, t.value || true); };
+  $("#mslist").onclick = e => { const r = e.target.closest("[data-xr]");
+    if(r){ sync(); draft.extras = draft.extras.filter((x,j) => j!==+r.dataset.xr); msCommit(); return; }
+    const b = e.target.closest("[data-d],[data-xd]"); if(!b) return; const x = b.dataset.xd!==undefined, k = x ? b.dataset.xd : b.dataset.d, v = x ? draft.extras[k].date : ms(draft)[k];
+    b.outerHTML = `<input type="date" data-${x?"xdd":"dd"}="${k}" value="${v===true?"":esc(v)}" aria-label="Date">`; const i = $(`#mslist [data-${x?"xdd":"dd"}="${k}"]`); i.focus(); try{ i.showPicker(); }catch{} };
   const watch = e => { hints(); if(/^f_(stage|contract|productStatus|payStatus|productsSent|dealType)$/.test(e.target.id)) drawMs(); };
   $("#dbody").addEventListener("input", watch); $("#dbody").addEventListener("change", watch);
   drawMs(); drawRevs();

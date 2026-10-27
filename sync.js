@@ -34,7 +34,7 @@ function yv(v){
 function toMarkdown(col, id, data){
   const fm = [`id: ${yv(id)}`, `type: ${col}`];
   for(const [k,v] of Object.entries(data)){
-    if(BODY[col].includes(k) || k==="revisions" || (col==="deals" && k==="milestones")) continue;
+    if(BODY[col].includes(k) || k==="revisions" || (col==="deals" && (k==="milestones" || k==="extras"))) continue;
     fm.push(`${k}: ${yv(v)}`);
   }
   if(Array.isArray(data.revisions) && data.revisions.length){
@@ -44,7 +44,9 @@ function toMarkdown(col, id, data){
   const body = [`# ${String(data[TITLE[col]] || id).replace(/\n/g," ")}`];
   const ms = col==="deals" && data.milestones && typeof data.milestones==="object" ? data.milestones : {};
   const msLines = MILESTONES.filter(([k]) => k in ms).map(([k,l]) => `- [${ms[k]?"x":" "}] ${l}${typeof ms[k]==="string" && ms[k] ? ` (${ms[k]})` : ""}`);
-  if(msLines.length) body.push("", "## milestones", "", ...msLines);
+  const flat = t => String(t ?? "").replace(/\s+/g," ").trim();
+  const exLines = col==="deals" && Array.isArray(data.extras) ? data.extras.filter(e => e && flat(e.text)).map(e => `- [${e.date?"x":" "}] ${flat(e.text)}${typeof e.date==="string" && e.date ? ` (${e.date})` : ""}`) : [];
+  if(msLines.length || exLines.length) body.push("", "## milestones", "", ...msLines, ...exLines);
   for(const k of BODY[col]) if(data[k]) body.push("", `## ${k}`, "", String(data[k]));
   return "---\n" + fm.join("\n") + "\n---\n\n" + body.join("\n") + "\n";
 }
@@ -60,15 +62,17 @@ function scalar(raw){
   return v;
 }
 function parseMilestones(lines){
-  const out = {};
+  const out = {}, extras = [];
   for(const line of lines){
     const m = line.match(/^\s*[-*+]\s*\[([ xX]?)\]\s*(.+?)\s*$/); if(!m) continue;
     const d = m[2].match(/^(.*?)\s*\((\d{4}-\d{2}-\d{2})\)$/);
     const label = (d ? d[1] : m[2]).replace(/\s+/g," ").toLowerCase();
-    const hit = MILESTONES.find(([,l]) => l.toLowerCase()===label); if(!hit) continue;
-    out[hit[0]] = m[1].trim() ? (d ? d[2] : true) : "";
+    const hit = MILESTONES.find(([,l]) => l.toLowerCase()===label);
+    if(hit) out[hit[0]] = m[1].trim() ? (d ? d[2] : true) : "";
+    else if(!m[1].trim()) extras.push({text: m[2].replace(/\s+/g," "), date: ""});   // an open item keeps its whole text
+    else extras.push({text: (d ? d[1] : m[2]).replace(/\s+/g," "), date: d ? d[2] : true});
   }
-  return out;
+  return {ms: out, extras};
 }
 function fromMarkdown(text, fname=""){
   text = String(text).replace(/^﻿/,"").replace(/\r\n?/g,"\n");
@@ -97,7 +101,7 @@ function fromMarkdown(text, fname=""){
     col = /(^|\/)profile\.md$/i.test(fname) ? "profile" : data.brand!==undefined ? "deals" : data.title!==undefined ? "content" : data.name!==undefined ? "brands" : null;
     if(!col) throw new Error(`Couldn't tell what kind of item ${fname||"a file"} is. Add a "type:" line (deals, content, brands or profile).`);
   }
-  if(msBody && col==="deals" && Object.keys(msBody).length) data.milestones = msBody;
+  if(msBody && col==="deals"){ if(Object.keys(msBody.ms).length) data.milestones = msBody.ms; if(msBody.extras.length) data.extras = msBody.extras; }
   if(col==="profile") id = "profile";
   if(!id){ const fm = String(fname).match(/--([A-Za-z0-9_]+)\.md$/i); id = fm ? fm[1] : col[0] + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
   return {col, id: String(id), data};
