@@ -34,6 +34,11 @@ body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
   --r:14px; --shadow:0 18px 50px rgba(40,25,90,.18); --lift:0 1px 2px rgba(40,25,90,.06), 0 4px 14px rgba(40,25,90,.06);
   --h:var(--accent); --hs:var(--accent-soft);
 }
+/* Accent themes (data-accent): light, then dark. Dark rules come after the base dark blocks and are more specific. */
+:root[data-accent="rose"]{--accent:#BE123C; --accent-ink:#FFFFFF; --accent-soft:#FFE4EA; --bg:#FBF4F6; --sunk:#F6EBEE; --line:#EBDADF}
+:root[data-accent="ocean"]{--accent:#0E7490; --accent-ink:#FFFFFF; --accent-soft:#D6F2F8; --bg:#F1F7F9; --sunk:#E6F0F3; --line:#D3E3E8}
+:root[data-accent="forest"]{--accent:#166534; --accent-ink:#FFFFFF; --accent-soft:#DCF5E4; --bg:#F3F8F4; --sunk:#E7F1E9; --line:#D4E4D8}
+:root[data-accent="sunset"]{--accent:#C2410C; --accent-ink:#FFFFFF; --accent-soft:#FFE9D8; --bg:#FBF6F1; --sunk:#F6ECE2; --line:#EADCCB}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#13111C; --panel:#1B1827; --sunk:#232034; --line:#322D48;
   --ink:#EEEBF8; --muted:#ABA5C4; --faint:#7A7494;
@@ -54,6 +59,21 @@ body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}
   --rose:#F9A8D4; --rose-s:#3A1428; --amber:#FCD34D; --amber-s:#38290B; --green:#86EFAC; --green-s:#12301D;
   --teal:#5EEAD4; --teal-s:#0E2F2C; --sky:#7DD3FC; --sky-s:#0D2638; --indigo:#A5B4FC; --indigo-s:#1D2048;
   --violet:#D8B4FE; --violet-s:#2B1842; --orange:#FDBA74; --orange-s:#3A200D; --slate:#CBD5E1; --slate-s:#232838; --red:#FCA5A5; --red-s:#3B1515; color-scheme:dark}
+@media (prefers-color-scheme: dark){
+  :root[data-accent="rose"]:not([data-theme="light"]){--accent:#FB7185; --accent-ink:#3F0716; --accent-soft:#3D1624; --bg:#1A1114; --panel:#221519; --sunk:#2A1A20; --line:#46292F}
+  :root[data-accent="ocean"]:not([data-theme="light"]){--accent:#22D3EE; --accent-ink:#04262E; --accent-soft:#0C3540; --bg:#0F1719; --panel:#121D20; --sunk:#162428; --line:#25393F}
+  :root[data-accent="forest"]:not([data-theme="light"]){--accent:#4ADE80; --accent-ink:#052E14; --accent-soft:#11341F; --bg:#101712; --panel:#131E16; --sunk:#17241A; --line:#26392B}
+  :root[data-accent="sunset"]:not([data-theme="light"]){--accent:#FB923C; --accent-ink:#3A1500; --accent-soft:#3E230E; --bg:#18130F; --panel:#1F1811; --sunk:#261C14; --line:#40301F}
+}
+:root[data-theme="dark"][data-accent="rose"]{--accent:#FB7185; --accent-ink:#3F0716; --accent-soft:#3D1624; --bg:#1A1114; --panel:#221519; --sunk:#2A1A20; --line:#46292F}
+:root[data-theme="dark"][data-accent="ocean"]{--accent:#22D3EE; --accent-ink:#04262E; --accent-soft:#0C3540; --bg:#0F1719; --panel:#121D20; --sunk:#162428; --line:#25393F}
+:root[data-theme="dark"][data-accent="forest"]{--accent:#4ADE80; --accent-ink:#052E14; --accent-soft:#11341F; --bg:#101712; --panel:#131E16; --sunk:#17241A; --line:#26392B}
+:root[data-theme="dark"][data-accent="sunset"]{--accent:#FB923C; --accent-ink:#3A1500; --accent-soft:#3E230E; --bg:#18130F; --panel:#1F1811; --sunk:#261C14; --line:#40301F}
+/* Appearance swatches: 44px tap target, ring shows selection */
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{width:44px;height:44px;border-radius:50%;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center}
+.sw button i{width:28px;height:28px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.sw button[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--c)}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
@@ -237,6 +257,17 @@ legend{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase
 }
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .22s ease-out}@keyframes slide{from{transform:translateX(30px);opacity:.6}}}
 </style>
+<script>
+/* Theme: per-device {mode:system|light|dark, accent:violet|rose|ocean|forest|sunset} in localStorage "collabdesk.theme" */
+function getTheme(){ try{ const t = JSON.parse(localStorage.getItem("collabdesk.theme")||"{}"); return {mode:["light","dark"].includes(t.mode)?t.mode:"system", accent:["rose","ocean","forest","sunset"].includes(t.accent)?t.accent:"violet"}; }catch(e){ return {mode:"system",accent:"violet"}; } }
+function themeMeta(){ try{ const m = document.querySelector('meta[name="theme-color"]'), c = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(); if(m && c) m.setAttribute("content", c); }catch(e){} }
+function applyTheme(t, save){ const r = document.documentElement; t = Object.assign(getTheme(), t);
+  t.mode === "system" ? r.removeAttribute("data-theme") : r.setAttribute("data-theme", t.mode);
+  t.accent === "violet" ? r.removeAttribute("data-accent") : r.setAttribute("data-accent", t.accent);
+  if(save !== false) try{ localStorage.setItem("collabdesk.theme", JSON.stringify({mode:t.mode, accent:t.accent})); }catch(e){}
+  themeMeta(); return t; }
+try{ applyTheme(getTheme(), false); matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if(getTheme().mode === "system") themeMeta(); }); }catch(e){}
+</script>
 </head>
 <body>
 <div class="app">
@@ -608,8 +639,12 @@ function viewProfile(v){
 }
 
 function settingsHTML(){
-  const g = CD.info();
+  const g = CD.info(), th = getTheme();
   return `<div class="settings">
+  <div class="setcard"><h2>Appearance</h2>
+    <div class="row"><div class="seg" role="group" aria-label="Mode">${[["system","System"],["light","Light"],["dark","Dark"]].map(([m,l])=>`<button type="button" data-mode="${m}" aria-pressed="${th.mode===m}">${l}</button>`).join("")}</div></div>
+    <div class="sw" role="group" aria-label="Accent colour">${[["violet","Violet","#5B3FD6"],["rose","Rose","#BE123C"],["ocean","Ocean","#0E7490"],["forest","Forest","#166534"],["sunset","Sunset","#C2410C"]].map(([a,l,c])=>`<button type="button" data-accent="${a}" aria-label="${l}" aria-pressed="${th.accent===a}" style="--c:${c}"><i></i></button>`).join("")}</div>
+  </div>
   <div class="setcard"><h2>Google Drive sync</h2>
     ${g.connected ? `<p>Connected${g.email?` as <b>${esc(g.email)}</b>`:""}. Everything is saved as Markdown files in the <b>Collab Desk</b> folder in your Drive. ${esc(g.status)}</p>
       <div class="row"><button class="btn primary" id="syncnow" type="button">Sync now</button>${g.folderUrl?`<a class="btn" href="${esc(g.folderUrl)}" target="_blank" rel="noopener">Open folder in Drive ↗</a>`:""}<button class="btn ghost danger" id="gdisc" type="button">Disconnect</button></div>`
@@ -625,6 +660,9 @@ function settingsHTML(){
 }
 function bindSettings(){
   const on = (id, fn) => { const el = $("#"+id); if(el) el.onclick = fn; };
+  const paint = () => { const t = getTheme(); document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === t.mode)); document.querySelectorAll(".sw [data-accent]").forEach(b => b.setAttribute("aria-pressed", b.dataset.accent === t.accent)); };
+  document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { applyTheme({mode:b.dataset.mode}); paint(); });
+  document.querySelectorAll(".sw [data-accent]").forEach(b => b.onclick = () => { applyTheme({accent:b.dataset.accent}); paint(); });
   on("gconn", () => { const i = $("#gcid"); if(i && !i.value.trim()){ toast("Paste your Client ID first"); i.focus(); return; } CD.connect(i ? i.value.trim() : null); });
   on("syncnow", () => CD.syncNow(true));
   on("gdisc", () => { if(confirm("Disconnect Google Drive on this device? Your files stay in Drive and on this device.")) CD.disconnect(); });
